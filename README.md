@@ -1,7 +1,5 @@
 # Illumimateys
-Interview Prep.
-Unless someone has a very strong option otherwise (i.e. let us know asap), I assume we will be using Python 2.7.*.
-
-Also, when installing Python, please also install the following libraries/packages:
-* matplotlib (handy for plotting)
-* numpy (handy for math)
+This is where we keep all our Shadow Wall related code:
+  - Kinect sensor(s) code
+  - LED interaction code
+  - software models of the shadow wall
