@@ -71,6 +71,8 @@ namespace ShadowWall
 						{
 							Wall.DrawPoint(joint);
 						}
+
+						//Serializer.Save(body);
 					}
 				}
 			}
