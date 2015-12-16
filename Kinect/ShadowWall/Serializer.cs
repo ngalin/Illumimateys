@@ -14,7 +14,7 @@ namespace ShadowWall
 	{
 		public static void Save(Body body)
 		{
-			using(var file = new FileStream(Assembly.GetExecutingAssembly().Location + ".csv", FileMode.Append))
+			using (var file = new FileStream(FilePath, FileMode.Append))
 			{
 				using (var stream = new StreamWriter(file))
 				{
@@ -25,7 +25,7 @@ namespace ShadowWall
 
 		public static IEnumerable<BodyFrame> Load()
 		{
-			using (var file = new FileStream(Assembly.GetExecutingAssembly().Location + ".csv", FileMode.Open))
+			using (var file = new FileStream(FilePath, FileMode.Open))
 			{
 				using (var stream = new StreamReader(file))
 				{
@@ -43,6 +43,15 @@ namespace ShadowWall
 						yield return body;
 					}
 				}
+			}
+		}
+
+		private static string FilePath
+		{
+			get
+			{
+				var location = Assembly.GetExecutingAssembly().Location;
+				return location.Substring(0, location.LastIndexOf(@"\")) + @"\Resources\ShadowWall.exe.csv";
 			}
 		}
 	}
