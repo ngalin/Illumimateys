@@ -1,0 +1,13 @@
+﻿<Window x:Class="ShadowWall.Depth"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ShadowWall"
+        mc:Ignorable="d"
+        Title="Depth" Height="848" Width="1024" MinHeight="424" MinWidth="512">
+    <Grid x:Name="KinectGrid" Background="Black">
+        <Canvas x:Name="KinectCanvas" HorizontalAlignment="Left" Height="{Binding ElementName=KinectGrid, Path=ActualHeight}" Margin="0,0,0,0" VerticalAlignment="Top" Width="{Binding ElementName=KinectGrid, Path=ActualWidth}"/>
+        <Image x:Name="DepthImage" HorizontalAlignment="Left" Height="{Binding ElementName=KinectGrid, Path=ActualHeight}" Margin="0,0,0,0" VerticalAlignment="Top" Width="{Binding ElementName=KinectGrid, Path=ActualWidth}" />
+    </Grid>
+</Window>

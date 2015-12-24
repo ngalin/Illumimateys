@@ -21,9 +21,9 @@ namespace ShadowWall
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-	public partial class MainWindow : Window
+	public partial class Main : Window
 	{
-		public MainWindow()
+		public Main()
 		{
 			InitializeComponent();
 
@@ -69,7 +69,7 @@ namespace ShadowWall
 					{
 						foreach (var joint in body.Joints.Select(j => j.Value))
 						{
-							Wall.DrawPoint(joint);
+							Wall.DrawPoint(joint, Brushes.White);
 						}
 
 						//Serializer.Save(body);

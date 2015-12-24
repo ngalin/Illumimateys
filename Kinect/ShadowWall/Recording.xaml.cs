@@ -46,7 +46,7 @@ namespace ShadowWall
 
 					foreach (var joint in body.Joints)
 					{
-						Wall.DrawPoint(joint);
+						Wall.DrawPoint(joint, Brushes.White);
 					}
 
 					Thread.Sleep(30);

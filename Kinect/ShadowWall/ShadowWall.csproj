@@ -58,13 +58,20 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="BodyFrame.cs" />
+    <Compile Include="Depth.xaml.cs">
+      <DependentUpon>Depth.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Recording.xaml.cs">
       <DependentUpon>Recording.xaml</DependentUpon>
     </Compile>
     <Compile Include="Scale.cs" />
     <Compile Include="Serializer.cs" />
     <Compile Include="Wall.cs" />
-    <Page Include="MainWindow.xaml">
+    <Page Include="Depth.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Main.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -72,8 +79,8 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
+    <Compile Include="Main.xaml.cs">
+      <DependentUpon>Main.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Page Include="Recording.xaml">

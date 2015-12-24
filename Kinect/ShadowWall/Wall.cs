@@ -24,9 +24,8 @@ namespace ShadowWall
 			this.Canvas.Children.Clear();
 		}
 
-		public void DrawPoint(Joint joint)
+		public void DrawPoint(Joint joint, Brush brush, double thickness = 5.0)
 		{
-			var thickness = 5.0;
 			var x = Scale.X(joint.Position.X, this.Canvas.ActualWidth);
 			var y = Scale.Y(joint.Position.Y, this.Canvas.ActualHeight);
 
@@ -36,8 +35,8 @@ namespace ShadowWall
 				Y1 = y,
 				X2 = x + thickness,
 				Y2 = y + thickness,
-				StrokeThickness = thickness,
-				Stroke = Brushes.White
+				StrokeThickness = thickness * 1.5,
+				Stroke = brush
 			};
 
 			this.Canvas.Children.Add(line);
