@@ -27,8 +27,6 @@ namespace ShadowWall
 		{
 			InitializeComponent();
 
-			this.Wall = new Wall(KinectCanvas);
-
 			this.Closed += MainWindow_Closed;
 
 			var sensor = KinectSensor.GetDefault();
@@ -37,8 +35,6 @@ namespace ShadowWall
 			var depthReader = sensor.DepthFrameSource.OpenReader();
 			depthReader.FrameArrived += depthReader_FrameArrived;
 		}
-
-		public Wall Wall { get; set; }
 
 		public int Distance { get { return 2000; } }
 

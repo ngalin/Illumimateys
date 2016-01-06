@@ -7,7 +7,6 @@
         mc:Ignorable="d"
         Title="Depth" Height="848" Width="1024" MinHeight="424" MinWidth="512">
     <Grid x:Name="KinectGrid" Background="Black">
-        <Canvas x:Name="KinectCanvas" HorizontalAlignment="Left" Height="{Binding ElementName=KinectGrid, Path=ActualHeight}" Margin="0,0,0,0" VerticalAlignment="Top" Width="{Binding ElementName=KinectGrid, Path=ActualWidth}"/>
         <Image x:Name="DepthImage" HorizontalAlignment="Left" Height="{Binding ElementName=KinectGrid, Path=ActualHeight}" Margin="0,0,0,0" VerticalAlignment="Top" Width="{Binding ElementName=KinectGrid, Path=ActualWidth}" />
     </Grid>
 </Window>
