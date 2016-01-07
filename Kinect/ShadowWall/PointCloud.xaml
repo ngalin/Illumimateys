@@ -39,7 +39,7 @@
                                 <MeshGeometry3D x:Name="Mesh"></MeshGeometry3D> <!--Positions="0,0,0 512,0,0 512,424,0 0,424,0" TriangleIndices="0 1 2 0 2 3"-->
                             </GeometryModel3D.Geometry>
                             <GeometryModel3D.Material>
-                                <DiffuseMaterial Brush="DarkGray"/>
+                                <DiffuseMaterial Brush="White"/>
                             </GeometryModel3D.Material>
                         </GeometryModel3D>
                     </Model3DGroup>
