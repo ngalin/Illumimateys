@@ -33,10 +33,6 @@ namespace ShadowWall.Recording
 			this.MouseWheel += PointCloud_MouseWheel;
 		}
 
-		public int WallWidth { get { return 180; } }
-		public int WallHeight { get { return 120; } }
-		public int Distance { get { return 2000; } }
-
 		private void PointCloud_Loaded(object sender, RoutedEventArgs e)
 		{
 			var points = Serializer.LoadPoint();

@@ -42,6 +42,8 @@ namespace ShadowWall
 
 		public int WallWidth { get { return 180; } }
 		public int WallHeight { get { return 120; } }
+		public int WallBreadth { get { return 200; } }
+
 		public int Distance { get { return 2000; } }
 
 		private void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
@@ -82,7 +84,7 @@ namespace ShadowWall
 				{
 					var x = (i % width) * this.WallWidth / (float)width;
 					var y = (height - i / width) * this.WallHeight / (float)height;
-					var z = item > 0 ? this.WallWidth - (((float)item / this.Distance) * this.WallWidth) : 0;
+					var z = item > 0 ? this.WallBreadth - (((float)item / this.Distance) * this.WallBreadth) : 0;
 
 					var b = item / 3;
 					var g = (item - b) / 3;
