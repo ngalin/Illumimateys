@@ -40,6 +40,8 @@ namespace ShadowWall
 			depthReader.FrameArrived += depthReader_FrameArrived;
 		}
 
+		public int WallWidth { get { return 180; } }
+		public int WallHeight { get { return 120; } }
 		public int Distance { get { return 2000; } }
 
 		private void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
@@ -61,7 +63,7 @@ namespace ShadowWall
 
 					this.Clear();
 					this.ConvertToPointCloud(depths, width, height);
-					this.Refresh();
+					this.Flush();
 				}
 			}
 		}
@@ -78,15 +80,16 @@ namespace ShadowWall
 				var item = array[i];
 				if (item > 0)
 				{
-					var x = i % width;
-					var y = height - i / width;
-					var z = item > 0 ? width - (((float)item / this.Distance) * width) : 0;
+					var x = (i % width) * this.WallWidth / (float)width;
+					var y = (height - i / width) * this.WallHeight / (float)height;
+					var z = item > 0 ? this.WallWidth - (((float)item / this.Distance) * this.WallWidth) : 0;
 
 					var b = item / 3;
 					var g = (item - b) / 3;
 					var r = (item - b - g) / 3;
 
 					this.DrawPoint(x, y, z, r, g, b);
+					//Serializer.Save(x, y, z, r, g, b);
 				}
 			}
 		}
@@ -97,7 +100,7 @@ namespace ShadowWall
 			Mesh.TriangleIndices.Clear();
 		}
 
-		private void Refresh()
+		private void Flush()
 		{
 			Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, new ThreadStart(delegate { }));
 		}
@@ -123,6 +126,18 @@ namespace ShadowWall
 					break;
 				case Key.Right:
 					RotateY.Angle += 10;
+					break;
+				case Key.W:
+					Camera.Position = new Point3D(Camera.Position.X, Camera.Position.Y - 50, Camera.Position.Z);
+					break;
+				case Key.S:
+					Camera.Position = new Point3D(Camera.Position.X, Camera.Position.Y + 50, Camera.Position.Z);
+					break;
+				case Key.A:
+					Camera.Position = new Point3D(Camera.Position.X + 50, Camera.Position.Y, Camera.Position.Z);
+					break;
+				case Key.D:
+					Camera.Position = new Point3D(Camera.Position.X - 50, Camera.Position.Y - 50, Camera.Position.Z);
 					break;
 				default:
 					break;

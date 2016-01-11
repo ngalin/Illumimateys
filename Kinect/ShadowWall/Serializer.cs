@@ -23,7 +23,18 @@ namespace ShadowWall
 			}
 		}
 
-		public static IEnumerable<BodyFrame> Load()
+		public static void Save(float x, float y, float z, int r, int g, int b)
+		{
+			using (var file = new FileStream(FilePath, FileMode.Append))
+			{
+				using (var stream = new StreamWriter(file))
+				{
+					stream.WriteLine(string.Format("{0}|{1}|{2}|{3}|{4}|{5}", x, y, z, r, g, b));
+				}
+			}
+		}
+
+		public static IEnumerable<BodyFrame> LoadSkeleton()
 		{
 			using (var file = new FileStream(FilePath, FileMode.Open))
 			{
@@ -41,6 +52,22 @@ namespace ShadowWall
 						}
 
 						yield return body;
+					}
+				}
+			}
+		}
+
+		public static IEnumerable<PointFrame> LoadPoint()
+		{
+			using (var file = new FileStream(FilePath, FileMode.Open))
+			{
+				using (var stream = new StreamReader(file))
+				{
+					string pointSerialized;
+					while ((pointSerialized = stream.ReadLine()) != null)
+					{
+						var pointProperties = pointSerialized.Split(new char[] { '|' });
+						yield return new PointFrame { X = float.Parse(pointProperties[0]), Y = float.Parse(pointProperties[1]), Z = float.Parse(pointProperties[2]), R = int.Parse(pointProperties[3]), G = int.Parse(pointProperties[4]), B = int.Parse(pointProperties[5]) };
 					}
 				}
 			}

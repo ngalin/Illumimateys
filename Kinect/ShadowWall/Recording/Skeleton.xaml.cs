@@ -16,14 +16,14 @@ using System.Threading;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
 
-namespace ShadowWall
+namespace ShadowWall.Recording
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-	public partial class Recording : Window
+	public partial class Skeleton : Window
 	{
-		public Recording()
+		public Skeleton()
 		{
 			InitializeComponent();
 
@@ -36,7 +36,7 @@ namespace ShadowWall
 
 		private void Recording_Loaded(object sender, RoutedEventArgs e)
 		{
-			var bodies = Serializer.Load();
+			var bodies = Serializer.LoadSkeleton();
 
 			foreach (var body in bodies)
 			{

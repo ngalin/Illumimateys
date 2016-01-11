@@ -57,15 +57,19 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="BodyFrame.cs" />
+    <Compile Include="Models\PointFrame.cs" />
+    <Compile Include="Models\BodyFrame.cs" />
     <Compile Include="PointCloud.xaml.cs">
       <DependentUpon>PointCloud.xaml</DependentUpon>
     </Compile>
     <Compile Include="Depth.xaml.cs">
       <DependentUpon>Depth.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Recording.xaml.cs">
-      <DependentUpon>Recording.xaml</DependentUpon>
+    <Compile Include="Recording\PointCloud.xaml.cs">
+      <DependentUpon>PointCloud.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Recording\Skeleton.xaml.cs">
+      <DependentUpon>Skeleton.xaml</DependentUpon>
     </Compile>
     <Compile Include="Scale.cs" />
     <Compile Include="Serializer.cs" />
@@ -90,7 +94,11 @@
       <DependentUpon>Main.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="Recording.xaml">
+    <Page Include="Recording\PointCloud.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Recording\Skeleton.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -118,9 +126,7 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <AppDesigner Include="Properties\" />
-    <Content Include="Resources\ShadowWall.exe.csv">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Content Include="Resources\ShadowWall.exe.csv" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
