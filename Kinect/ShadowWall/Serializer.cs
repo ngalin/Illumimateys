@@ -23,7 +23,7 @@ namespace ShadowWall
 			}
 		}
 
-		public static void Save(float x, float y, float z, int r, int g, int b)
+		public static void Save(int x, int y, int z, byte r, byte g, byte b)
 		{
 			using (var file = new FileStream(FilePath, FileMode.Append))
 			{

@@ -71,7 +71,7 @@ namespace ShadowWall.Recording
 					Camera.Position = new Point3D(Camera.Position.X + 50, Camera.Position.Y, Camera.Position.Z);
 					break;
 				case Key.D:
-					Camera.Position = new Point3D(Camera.Position.X - 50, Camera.Position.Y - 50, Camera.Position.Z);
+					Camera.Position = new Point3D(Camera.Position.X - 50, Camera.Position.Y, Camera.Position.Z);
 					break;
 				default:
 					break;

@@ -90,8 +90,8 @@ namespace ShadowWall
 					var g = (item - b) / 3;
 					var r = (item - b - g) / 3;
 
-					this.DrawPoint(x, y, z, r, g, b);
-					//Serializer.Save(x, y, z, r, g, b);
+					this.DrawPoint((int)x, (int)y, (int)z, (byte)r, (byte)g, (byte)b);
+					//Serializer.Save((int)x, (int)y, (int)z, (byte)r, (byte)g, (byte)b);
 				}
 			}
 		}
@@ -139,7 +139,7 @@ namespace ShadowWall
 					Camera.Position = new Point3D(Camera.Position.X + 50, Camera.Position.Y, Camera.Position.Z);
 					break;
 				case Key.D:
-					Camera.Position = new Point3D(Camera.Position.X - 50, Camera.Position.Y - 50, Camera.Position.Z);
+					Camera.Position = new Point3D(Camera.Position.X - 50, Camera.Position.Y, Camera.Position.Z);
 					break;
 				default:
 					break;
@@ -158,10 +158,10 @@ namespace ShadowWall
 			}
 		}
 
-		private void DrawPoint(float x, float y, float z, int r, int g, int b)
+		private void DrawPoint(int x, int y, int z, byte r, byte g, byte b)
 		{
 			var count = Mesh.Positions.Count;
-			var color = new Color() { A = 0, R = (byte)r, G = (byte)g, B = (byte)b };
+			var color = new Color() { A = 0, R = r, G = g, B = b };
 
 			Mesh.Positions.Add(new Point3D(x - 0.5, y - 0.5, z + 0.5));
 			Mesh.Positions.Add(new Point3D(x + 0.5, y + 0.5, z + 0.5));
