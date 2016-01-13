@@ -44,7 +44,7 @@ namespace ShadowWall
 		public int WallHeight { get { return 120; } }
 		public int WallBreadth { get { return 200; } }
 
-		public int Distance { get { return 2000; } }
+		public int Distance { get { return 8000; } }
 
 		private void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
 		{
