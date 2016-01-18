@@ -40,14 +40,11 @@ namespace ShadowWall
 			depthReader.FrameArrived += depthReader_FrameArrived;
 
 			var bodyReader = sensor.BodyFrameSource.OpenReader();
-			bodyReader.FrameArrived += bodyReader_FrameArrived;
 		}
 
 		public int WallWidth { get { return 180; } }
 		public int WallHeight { get { return 120; } }
-		public int WallBreadth { get { return 200; } }
-
-		public int Distance { get { return 8000; } }
+		public int WallBreadth { get { return 800; } }
 
 		private void PointCloud_Closed(object sender, EventArgs e)
 		{
@@ -68,34 +65,11 @@ namespace ShadowWall
 
 					for (int i = 0; i < depths.Length; ++i)
 					{
-						depths[i] = depths[i] > Distance ? default(ushort) : depths[i];
+						depths[i] = depths[i] > (this.WallBreadth * 10) ? default(ushort) : depths[i];
 					}
 
+					this.Clear(Mesh);
 					this.ConvertToPointCloud(depths, width, height);
-				}
-			}
-		}
-
-		private void bodyReader_FrameArrived(object sender, BodyFrameArrivedEventArgs e)
-		{
-			using (var frame = e.FrameReference.AcquireFrame())
-			{
-				if (frame != null)
-				{
-					this.Clear(MeshSkeleton);
-
-					var bodies = new Body[frame.BodyCount];
-					frame.GetAndRefreshBodyData(bodies);
-
-					foreach (var body in bodies.Where(b => b.IsTracked))
-					{
-						foreach (var joint in body.Joints.Select(j => j.Value)) //.Where(j => j.JointType == JointType.SpineMid))
-						{
-							this.DrawPoint(MeshSkeleton, (int)Scale.X(joint.Position.X, this.WallWidth), (int)Scale.Y(joint.Position.Y, this.WallHeight), (int)joint.Position.Z, 255, 0, 0);
-							//Serializer.Save((int)joint.Position.X, (int)joint.Position.Y, (int)joint.Position.Z, 255, 0, 0);
-						}
-					}
-
 					this.Flush();
 				}
 			}
@@ -103,8 +77,6 @@ namespace ShadowWall
 
 		private void ConvertToPointCloud(ushort[] array, int width, int height)
 		{
-			this.Clear(Mesh);
-
 			var points = new List<PointFrame>();
 
 			for (int i = 0; i < array.Length; ++i)
@@ -114,7 +86,7 @@ namespace ShadowWall
 				{
 					var x = (i % width) * this.WallWidth / (float)width;
 					var y = (height - i / width) * this.WallHeight / (float)height;
-					var z = item > 0 ? this.WallBreadth - (((float)item / this.Distance) * this.WallBreadth) : 0;
+					var z = item > 0 ? this.WallBreadth - (((float)item / (this.WallBreadth * 10)) * this.WallBreadth) : 0;
 
 					var b = item / 3;
 					var g = (item - b) / 3;
@@ -129,19 +101,6 @@ namespace ShadowWall
 				this.DrawPoint(Mesh, (int)point.X, (int)point.Y, (int)point.Z, (byte)point.R, (byte)point.G, (byte)point.B);
 				//Serializer.Save((int)x, (int)y, (int)z, (byte)r, (byte)g, (byte)b);
 			}
-
-			this.Flush();
-		}
-
-		private void Clear(MeshGeometry3D mesh)
-		{
-			mesh.Positions.Clear();
-			mesh.TriangleIndices.Clear();
-		}
-
-		private void Flush()
-		{
-			Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, new ThreadStart(delegate { }));
 		}
 
 		#region 3D
@@ -156,19 +115,15 @@ namespace ShadowWall
 			{
 				case Key.Up:
 					RotateX.Angle += 10;
-					RotateSkeletonX.Angle += 10;
 					break;
 				case Key.Down:
 					RotateX.Angle -= 10;
-					RotateSkeletonX.Angle -= 10;
 					break;
 				case Key.Left:
 					RotateY.Angle -= 10;
-					RotateSkeletonY.Angle -= 10;
 					break;
 				case Key.Right:
 					RotateY.Angle += 10;
-					RotateSkeletonY.Angle += 10;
 					break;
 				case Key.W:
 					Camera.Position = new Point3D(Camera.Position.X, Camera.Position.Y - 50, Camera.Position.Z);
@@ -211,6 +166,17 @@ namespace ShadowWall
 			mesh.TriangleIndices.Add(0 + count);
 			mesh.TriangleIndices.Add(1 + count);
 			mesh.TriangleIndices.Add(2 + count);
+		}
+
+		private void Clear(MeshGeometry3D mesh)
+		{
+			mesh.Positions.Clear();
+			mesh.TriangleIndices.Clear();
+		}
+
+		private void Flush()
+		{
+			Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, new ThreadStart(delegate { }));
 		}
 
 		#endregion

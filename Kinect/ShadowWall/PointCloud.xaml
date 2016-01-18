@@ -9,7 +9,7 @@
     <Grid x:Name="KinectGrid" Background="Black">
         <Viewport3D x:Name="Viewport" Height="{Binding ElementName=KinectGrid, Path=ActualHeight}" Width="{Binding ElementName=KinectGrid, Path=ActualWidth}" >
             <Viewport3D.Camera>
-                <PerspectiveCamera x:Name="Camera" Position="-164,282,270" LookDirection="1,-1,-1" UpDirection="0,1,0" />
+                <PerspectiveCamera x:Name="Camera" Position="-464,532,620" LookDirection="1,-1,-1" UpDirection="0,1,0" />
             </Viewport3D.Camera>
             <ModelVisual3D>
                 <ModelVisual3D.Content>
@@ -36,37 +36,10 @@
                                 </Transform3DGroup>
                             </GeometryModel3D.Transform>
                             <GeometryModel3D.Geometry>
-                                <MeshGeometry3D x:Name="Mesh"></MeshGeometry3D> <!--Positions="0,0,0 512,0,0 512,424,0 0,424,0" TriangleIndices="0 1 2 0 2 3"-->
+                                <MeshGeometry3D x:Name="Mesh"></MeshGeometry3D>
                             </GeometryModel3D.Geometry>
                             <GeometryModel3D.Material>
                                 <DiffuseMaterial Brush="White"/>
-                            </GeometryModel3D.Material>
-                        </GeometryModel3D>
-                        <GeometryModel3D x:Name="SkeletalModel">
-                            <GeometryModel3D.Transform>
-                                <Transform3DGroup>
-                                    <RotateTransform3D>
-                                        <RotateTransform3D.Rotation>
-                                            <AxisAngleRotation3D x:Name="RotateSkeletonX" Axis="1,0,0" Angle="-30"/>
-                                        </RotateTransform3D.Rotation>
-                                    </RotateTransform3D>
-                                    <RotateTransform3D>
-                                        <RotateTransform3D.Rotation>
-                                            <AxisAngleRotation3D x:Name="RotateSkeletonY" Axis="0,1,0" Angle="-40"/>
-                                        </RotateTransform3D.Rotation>
-                                    </RotateTransform3D>
-                                    <RotateTransform3D>
-                                        <RotateTransform3D.Rotation>
-                                            <AxisAngleRotation3D x:Name="RotateSkeletonZ" Axis="0,0,1" Angle="0"/>
-                                        </RotateTransform3D.Rotation>
-                                    </RotateTransform3D>
-                                </Transform3DGroup>
-                            </GeometryModel3D.Transform>
-                            <GeometryModel3D.Geometry>
-                                <MeshGeometry3D x:Name="MeshSkeleton"></MeshGeometry3D>
-                            </GeometryModel3D.Geometry>
-                            <GeometryModel3D.Material>
-                                <DiffuseMaterial Brush="Red"/>
                             </GeometryModel3D.Material>
                         </GeometryModel3D>
                     </Model3DGroup>
