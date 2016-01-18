@@ -38,6 +38,9 @@ namespace ShadowWall
 
 			var depthReader = sensor.DepthFrameSource.OpenReader();
 			depthReader.FrameArrived += depthReader_FrameArrived;
+
+			var bodyReader = sensor.BodyFrameSource.OpenReader();
+			bodyReader.FrameArrived += bodyReader_FrameArrived;
 		}
 
 		public int WallWidth { get { return 180; } }
@@ -45,6 +48,11 @@ namespace ShadowWall
 		public int WallBreadth { get { return 200; } }
 
 		public int Distance { get { return 8000; } }
+
+		private void PointCloud_Closed(object sender, EventArgs e)
+		{
+			KinectSensor.GetDefault().Close();
+		}
 
 		private void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
 		{
@@ -63,20 +71,42 @@ namespace ShadowWall
 						depths[i] = depths[i] > Distance ? default(ushort) : depths[i];
 					}
 
-					this.Clear();
 					this.ConvertToPointCloud(depths, width, height);
+				}
+			}
+		}
+
+		private void bodyReader_FrameArrived(object sender, BodyFrameArrivedEventArgs e)
+		{
+			using (var frame = e.FrameReference.AcquireFrame())
+			{
+				if (frame != null)
+				{
+					this.Clear(MeshSkeleton);
+
+					var bodies = new Body[frame.BodyCount];
+					frame.GetAndRefreshBodyData(bodies);
+
+					foreach (var body in bodies.Where(b => b.IsTracked))
+					{
+						foreach (var joint in body.Joints.Select(j => j.Value)) //.Where(j => j.JointType == JointType.SpineMid))
+						{
+							this.DrawPoint(MeshSkeleton, (int)Scale.X(joint.Position.X, this.WallWidth), (int)Scale.Y(joint.Position.Y, this.WallHeight), (int)joint.Position.Z, 255, 0, 0);
+							//Serializer.Save((int)joint.Position.X, (int)joint.Position.Y, (int)joint.Position.Z, 255, 0, 0);
+						}
+					}
+
 					this.Flush();
 				}
 			}
 		}
 
-		private void PointCloud_Closed(object sender, EventArgs e)
-		{
-			KinectSensor.GetDefault().Close();
-		}
-
 		private void ConvertToPointCloud(ushort[] array, int width, int height)
 		{
+			this.Clear(Mesh);
+
+			var points = new List<PointFrame>();
+
 			for (int i = 0; i < array.Length; ++i)
 			{
 				var item = array[i];
@@ -90,16 +120,23 @@ namespace ShadowWall
 					var g = (item - b) / 3;
 					var r = (item - b - g) / 3;
 
-					this.DrawPoint((int)x, (int)y, (int)z, (byte)r, (byte)g, (byte)b);
-					//Serializer.Save((int)x, (int)y, (int)z, (byte)r, (byte)g, (byte)b);
+					points.Add(new PointFrame() {X = x, Y = y, Z = z, R = (byte)r, G = (byte)g, B = (byte)b });
 				}
 			}
+
+			foreach (var point in points.GroupBy(p => new { X = (int)p.X, Y = (int)p.Y, Z = (int)p.Z }).Select(g => g.First()))
+			{
+				this.DrawPoint(Mesh, (int)point.X, (int)point.Y, (int)point.Z, (byte)point.R, (byte)point.G, (byte)point.B);
+				//Serializer.Save((int)x, (int)y, (int)z, (byte)r, (byte)g, (byte)b);
+			}
+
+			this.Flush();
 		}
 
-		private void Clear()
+		private void Clear(MeshGeometry3D mesh)
 		{
-			Mesh.Positions.Clear();
-			Mesh.TriangleIndices.Clear();
+			mesh.Positions.Clear();
+			mesh.TriangleIndices.Clear();
 		}
 
 		private void Flush()
@@ -119,15 +156,19 @@ namespace ShadowWall
 			{
 				case Key.Up:
 					RotateX.Angle += 10;
+					RotateSkeletonX.Angle += 10;
 					break;
 				case Key.Down:
 					RotateX.Angle -= 10;
+					RotateSkeletonX.Angle -= 10;
 					break;
 				case Key.Left:
 					RotateY.Angle -= 10;
+					RotateSkeletonY.Angle -= 10;
 					break;
 				case Key.Right:
 					RotateY.Angle += 10;
+					RotateSkeletonY.Angle += 10;
 					break;
 				case Key.W:
 					Camera.Position = new Point3D(Camera.Position.X, Camera.Position.Y - 50, Camera.Position.Z);
@@ -158,18 +199,18 @@ namespace ShadowWall
 			}
 		}
 
-		private void DrawPoint(int x, int y, int z, byte r, byte g, byte b)
+		private void DrawPoint(MeshGeometry3D mesh, int x, int y, int z, byte r, byte g, byte b)
 		{
-			var count = Mesh.Positions.Count;
+			var count = mesh.Positions.Count;
 			var color = new Color() { A = 0, R = r, G = g, B = b };
 
-			Mesh.Positions.Add(new Point3D(x - 0.5, y - 0.5, z + 0.5));
-			Mesh.Positions.Add(new Point3D(x + 0.5, y + 0.5, z + 0.5));
-			Mesh.Positions.Add(new Point3D(x - 0.5, y + 0.5, z + 0.5));
+			mesh.Positions.Add(new Point3D(x - 0.5, y - 0.5, z + 0.5));
+			mesh.Positions.Add(new Point3D(x + 0.5, y + 0.5, z + 0.5));
+			mesh.Positions.Add(new Point3D(x - 0.5, y + 0.5, z + 0.5));
 
-			Mesh.TriangleIndices.Add(0 + count);
-			Mesh.TriangleIndices.Add(1 + count);
-			Mesh.TriangleIndices.Add(2 + count);
+			mesh.TriangleIndices.Add(0 + count);
+			mesh.TriangleIndices.Add(1 + count);
+			mesh.TriangleIndices.Add(2 + count);
 		}
 
 		#endregion
