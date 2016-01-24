@@ -7,7 +7,20 @@
         mc:Ignorable="d"
         Title="PointCloud" Height="848" Width="1024" MinHeight="424" MinWidth="512">
     <Grid x:Name="KinectGrid" Background="Black">
-        <Viewport3D x:Name="Viewport" Height="{Binding ElementName=KinectGrid, Path=ActualHeight}" Width="{Binding ElementName=KinectGrid, Path=ActualWidth}" >
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Button Grid.Row="0" x:Name="snapshotButton" Click="snapshotButton_Click" Content="Snapshot"/>
+        <Viewport3D Grid.Row="1" x:Name="Viewport" Height="{Binding ElementName=KinectGrid, Path=ActualHeight}" Width="{Binding ElementName=KinectGrid, Path=ActualWidth}" RenderTransformOrigin="0.486,0.639" >
+            <Viewport3D.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform/>
+                    <RotateTransform Angle="0.115"/>
+                    <TranslateTransform X="-0.225" Y="-0.028"/>
+                </TransformGroup>
+            </Viewport3D.RenderTransform>
             <Viewport3D.Camera>
                 <PerspectiveCamera x:Name="Camera" Position="-464,532,620" LookDirection="1,-1,-1" UpDirection="0,1,0" />
             </Viewport3D.Camera>

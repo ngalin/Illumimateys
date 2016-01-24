@@ -12,7 +12,16 @@ namespace ShadowWall
 {
 	public class Serializer
 	{
-		public static void Save(Body body)
+		public Serializer()
+		{
+		}
+
+		public Serializer(string fileSuffix)
+		{
+			FileSuffix = fileSuffix;
+		}
+
+		public void Save(Body body)
 		{
 			using (var file = new FileStream(FilePath, FileMode.Append))
 			{
@@ -23,7 +32,7 @@ namespace ShadowWall
 			}
 		}
 
-		public static void Save(int x, int y, int z, byte r, byte g, byte b)
+		public void Save(int x, int y, int z, byte r, byte g, byte b)
 		{
 			using (var file = new FileStream(FilePath, FileMode.Append))
 			{
@@ -34,7 +43,7 @@ namespace ShadowWall
 			}
 		}
 
-		public static IEnumerable<BodyFrame> LoadSkeleton()
+		public IEnumerable<BodyFrame> LoadSkeleton()
 		{
 			using (var file = new FileStream(FilePath, FileMode.Open))
 			{
@@ -57,7 +66,7 @@ namespace ShadowWall
 			}
 		}
 
-		public static IEnumerable<PointFrame> LoadPoint()
+		public IEnumerable<PointFrame> LoadPoint()
 		{
 			using (var file = new FileStream(FilePath, FileMode.Open))
 			{
@@ -73,13 +82,15 @@ namespace ShadowWall
 			}
 		}
 
-		private static string FilePath
+		private string FilePath
 		{
 			get
 			{
 				var location = Assembly.GetExecutingAssembly().Location;
-				return location.Substring(0, location.LastIndexOf(@"\")) + @"\Resources\ShadowWall.exe.csv";
+				return location.Substring(0, location.LastIndexOf(@"\")) + @"\ShadowWallSnapshot" + FileSuffix + ".csv";
 			}
 		}
+
+		private string FileSuffix { get; set; }
 	}
 }

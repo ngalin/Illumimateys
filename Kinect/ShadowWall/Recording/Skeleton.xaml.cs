@@ -36,7 +36,7 @@ namespace ShadowWall.Recording
 
 		private void Recording_Loaded(object sender, RoutedEventArgs e)
 		{
-			var bodies = Serializer.LoadSkeleton();
+			var bodies = new Serializer().LoadSkeleton();
 
 			foreach (var body in bodies)
 			{

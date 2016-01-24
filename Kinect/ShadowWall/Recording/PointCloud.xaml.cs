@@ -35,7 +35,7 @@ namespace ShadowWall.Recording
 
 		private void PointCloud_Loaded(object sender, RoutedEventArgs e)
 		{
-			var points = Serializer.LoadPoint();
+			var points = new Serializer().LoadPoint();
 
 			foreach (var point in points)
 			{

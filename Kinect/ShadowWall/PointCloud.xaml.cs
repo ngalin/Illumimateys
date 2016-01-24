@@ -40,11 +40,16 @@ namespace ShadowWall
 			depthReader.FrameArrived += depthReader_FrameArrived;
 
 			var bodyReader = sensor.BodyFrameSource.OpenReader();
+			CurrentCloud = new List<PointFrame>();
 		}
 
 		public int WallWidth { get { return 180; } }
 		public int WallHeight { get { return 120; } }
 		public int WallBreadth { get { return 800; } }
+		public IEnumerable<PointFrame> CurrentCloud { get; private set; }
+
+		object currentCloudLock = new object();
+		int snapshotsTaken = 0;
 
 		private void PointCloud_Closed(object sender, EventArgs e)
 		{
@@ -96,11 +101,32 @@ namespace ShadowWall
 				}
 			}
 
-			foreach (var point in points.GroupBy(p => new { X = (int)p.X, Y = (int)p.Y, Z = (int)p.Z }).Select(g => g.First()))
+			var newCloud = points.GroupBy(p => new { X = (int)p.X, Y = (int)p.Y, Z = (int)p.Z }).Select(g => g.First());
+			foreach (var point in newCloud)
 			{
 				this.DrawPoint(Mesh, (int)point.X, (int)point.Y, (int)point.Z, (byte)point.R, (byte)point.G, (byte)point.B);
-				//Serializer.Save((int)x, (int)y, (int)z, (byte)r, (byte)g, (byte)b);
 			}
+			lock (currentCloudLock)
+			{
+				CurrentCloud = newCloud;
+			}
+		}
+
+		void snapshotButton_Click(object sender, EventArgs e)
+		{
+			IEnumerable<PointFrame> cloudToSave;
+			lock(currentCloudLock)
+			{
+				cloudToSave = CurrentCloud.ToArray();
+			}
+			Task.Factory.StartNew(() =>
+			{
+				var serializer = new Serializer(snapshotsTaken++.ToString());
+				foreach (var point in cloudToSave)
+				{
+					serializer.Save((int)point.X, (int)point.Y, (int)point.Z, (byte)point.R, (byte)point.G, (byte)point.B);
+				}
+			});
 		}
 
 		#region 3D
