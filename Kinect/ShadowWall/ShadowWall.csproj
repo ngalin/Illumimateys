@@ -57,6 +57,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Filters\AgingFilter.cs" />
+    <Compile Include="Filters\IPointCloudFilter.cs" />
     <Compile Include="Models\PointFrame.cs" />
     <Compile Include="Models\BodyFrame.cs" />
     <Compile Include="PointCloud.xaml.cs">

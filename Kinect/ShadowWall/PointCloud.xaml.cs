@@ -2,18 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Threading;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
 
@@ -41,22 +35,19 @@ namespace ShadowWall
 
 			var bodyReader = sensor.BodyFrameSource.OpenReader();
 			CurrentCloud = new List<PointFrame>();
+
+			filters = new IPointCloudFilter[]
+			{
+				new AgingFilter()
+			};
 		}
 
-		public int WallWidth { get { return 180; } }
-		public int WallHeight { get { return 120; } }
-		public int WallBreadth { get { return 800; } }
-		public IEnumerable<PointFrame> CurrentCloud { get; private set; }
-
-		object currentCloudLock = new object();
-		int snapshotsTaken = 0;
-
-		private void PointCloud_Closed(object sender, EventArgs e)
+		void PointCloud_Closed(object sender, EventArgs e)
 		{
 			KinectSensor.GetDefault().Close();
 		}
 
-		private void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
+		void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
 		{
 			using (var frame = e.FrameReference.AcquireFrame())
 			{
@@ -73,43 +64,78 @@ namespace ShadowWall
 						depths[i] = depths[i] > (this.WallBreadth * 10) ? default(ushort) : depths[i];
 					}
 
-					this.Clear(Mesh);
-					this.ConvertToPointCloud(depths, width, height);
-					this.Flush();
+					Clear(Mesh);
+					var newCloud = ConvertToPointCloud(depths, width, height);
+
+					foreach (var filter in filters)
+					{
+						filter.Apply(newCloud);
+					}
+
+					//DrawTriangleCloud(newCloud);
+					DrawDepthCloud(newCloud, width, height);
+
+					lock(currentCloudLock)
+					{
+						CurrentCloud = newCloud;
+					}
+					Flush();
 				}
 			}
 		}
 
-		private void ConvertToPointCloud(ushort[] array, int width, int height)
+		IEnumerable<PointFrame> ConvertToPointCloud(ushort[] depths, int width, int height)
 		{
 			var points = new List<PointFrame>();
 
-			for (int i = 0; i < array.Length; ++i)
+			for (int i = 0; i < depths.Length; ++i)
 			{
-				var item = array[i];
-				if (item > 0)
+				var item = depths[i];
+				var x = (i % width) * this.WallWidth / (float)width;
+				var y = (height - i / width) * this.WallHeight / (float)height;
+				var z = item > 0 ? this.WallBreadth - (((float)item / (this.WallBreadth * 10)) * this.WallBreadth) : 0;
+
+				var b = item / 3;
+				var g = (item - b) / 3;
+				var r = (item - b - g) / 3;
+
+				points.Add(new PointFrame() {X = x, Y = y, Z = z, R = (byte)r, G = (byte)g, B = (byte)b });
+			}
+
+			return points;
+		}
+
+		void DrawTriangleCloud(IEnumerable<PointFrame> cloud)
+		{
+			foreach (var point in cloud)
+			{
+				if (point.Z > 0)
 				{
-					var x = (i % width) * this.WallWidth / (float)width;
-					var y = (height - i / width) * this.WallHeight / (float)height;
-					var z = item > 0 ? this.WallBreadth - (((float)item / (this.WallBreadth * 10)) * this.WallBreadth) : 0;
-
-					var b = item / 3;
-					var g = (item - b) / 3;
-					var r = (item - b - g) / 3;
-
-					points.Add(new PointFrame() {X = x, Y = y, Z = z, R = (byte)r, G = (byte)g, B = (byte)b });
+					DrawPoint(Mesh, (int)point.X, (int)point.Y, (int)point.Z, (byte)point.R, (byte)point.G, (byte)point.B);
 				}
 			}
+		}
 
-			var newCloud = points.GroupBy(p => new { X = (int)p.X, Y = (int)p.Y, Z = (int)p.Z }).Select(g => g.First());
-			foreach (var point in newCloud)
+		void DrawDepthCloud(IEnumerable<PointFrame> cloud, int width, int height)
+		{
+			var byteCloud = ConvertToByteArray(cloud);
+			DepthImage.Source = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgr32, BitmapPalettes.WebPalette, byteCloud, width * PixelFormats.Bgr32.BitsPerPixel / 8);
+		}
+
+		private byte[] ConvertToByteArray(IEnumerable<PointFrame> cloud)
+		{
+			var bytes = new byte[cloud.Count() * (PixelFormats.Bgr32.BitsPerPixel / 8)];
+
+			var index = 0;
+			foreach (var point in cloud)
 			{
-				this.DrawPoint(Mesh, (int)point.X, (int)point.Y, (int)point.Z, (byte)point.R, (byte)point.G, (byte)point.B);
+				bytes[index++] = (byte)point.B; // Blue
+				bytes[index++] = (byte)point.G; // Green
+				bytes[index++] = (byte)point.B; // Red
+				bytes[index++] = 0; // Alpha
 			}
-			lock (currentCloudLock)
-			{
-				CurrentCloud = newCloud;
-			}
+
+			return bytes;
 		}
 
 		void snapshotButton_Click(object sender, EventArgs e)
@@ -131,11 +157,11 @@ namespace ShadowWall
 
 		#region 3D
 
-		private void PointCloud_Loaded(object sender, RoutedEventArgs e)
+		void PointCloud_Loaded(object sender, RoutedEventArgs e)
 		{
 		}
 
-		private void PointCloud_KeyDown(object sender, KeyEventArgs e)
+		void PointCloud_KeyDown(object sender, KeyEventArgs e)
 		{
 			switch (e.Key)
 			{
@@ -168,7 +194,7 @@ namespace ShadowWall
 			}
 		}
 
-		private void PointCloud_MouseWheel(object sender, MouseWheelEventArgs e)
+		void PointCloud_MouseWheel(object sender, MouseWheelEventArgs e)
 		{
 			if (e.Delta > 0)
 			{
@@ -180,7 +206,7 @@ namespace ShadowWall
 			}
 		}
 
-		private void DrawPoint(MeshGeometry3D mesh, int x, int y, int z, byte r, byte g, byte b)
+		void DrawPoint(MeshGeometry3D mesh, int x, int y, int z, byte r, byte g, byte b)
 		{
 			var count = mesh.Positions.Count;
 			var color = new Color() { A = 0, R = r, G = g, B = b };
@@ -194,17 +220,26 @@ namespace ShadowWall
 			mesh.TriangleIndices.Add(2 + count);
 		}
 
-		private void Clear(MeshGeometry3D mesh)
+		void Clear(MeshGeometry3D mesh)
 		{
 			mesh.Positions.Clear();
 			mesh.TriangleIndices.Clear();
 		}
 
-		private void Flush()
+		void Flush()
 		{
 			Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, new ThreadStart(delegate { }));
 		}
 
 		#endregion
+
+		public int WallWidth { get { return 180; } }
+		public int WallHeight { get { return 120; } }
+		public int WallBreadth { get { return 800; } }
+		public IEnumerable<PointFrame> CurrentCloud { get; private set; }
+
+		object currentCloudLock = new object();
+		int snapshotsTaken = 0;
+		IEnumerable<IPointCloudFilter> filters;
 	}
 }
