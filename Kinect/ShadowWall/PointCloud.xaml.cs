@@ -1,7 +1,11 @@
 ﻿using Microsoft.Kinect;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -16,7 +20,7 @@ namespace ShadowWall
 	/// <summary>
 	/// Interaction logic for MainWindow.xaml
 	/// </summary>
-	public partial class PointCloud : Window
+	public partial class PointCloud : Window, INotifyPropertyChanged
 	{
 		public PointCloud()
 		{
@@ -40,6 +44,8 @@ namespace ShadowWall
 			{
 				new AgingFilter()
 			};
+
+			DataContext = this;
 		}
 
 		void PointCloud_Closed(object sender, EventArgs e)
@@ -59,6 +65,11 @@ namespace ShadowWall
 
 					frame.CopyFrameDataToArray(depths);
 
+					if (IsRecording)
+					{
+						RecordDepths(depths);
+					}
+
 					for (int i = 0; i < depths.Length; ++i)
 					{
 						depths[i] = depths[i] > (this.WallBreadth * 10) ? default(ushort) : depths[i];
@@ -75,13 +86,20 @@ namespace ShadowWall
 					//DrawTriangleCloud(newCloud);
 					DrawDepthCloud(newCloud, width, height);
 
-					lock(currentCloudLock)
+					lock (currentCloudLock)
 					{
 						CurrentCloud = newCloud;
 					}
 					Flush();
 				}
 			}
+		}
+
+		void RecordDepths(ushort[] depths)
+		{
+			var recordString = string.Join(",", depths) + Environment.NewLine;
+			var byteCount = Encoding.UTF8.GetByteCount(recordString);
+			RecordFileStream.Write(Encoding.UTF8.GetBytes(recordString), 0, byteCount);
 		}
 
 		IEnumerable<PointFrame> ConvertToPointCloud(ushort[] depths, int width, int height)
@@ -99,7 +117,7 @@ namespace ShadowWall
 				var g = (item - b) / 3;
 				var r = (item - b - g) / 3;
 
-				points.Add(new PointFrame() {X = x, Y = y, Z = z, R = (byte)r, G = (byte)g, B = (byte)b });
+				points.Add(new PointFrame() { X = x, Y = y, Z = z, R = (byte)r, G = (byte)g, B = (byte)b });
 			}
 
 			return points;
@@ -141,7 +159,7 @@ namespace ShadowWall
 		void snapshotButton_Click(object sender, EventArgs e)
 		{
 			IEnumerable<PointFrame> cloudToSave;
-			lock(currentCloudLock)
+			lock (currentCloudLock)
 			{
 				cloudToSave = CurrentCloud.ToArray();
 			}
@@ -153,6 +171,22 @@ namespace ShadowWall
 					serializer.Save((int)point.X, (int)point.Y, (int)point.Z, (byte)point.R, (byte)point.G, (byte)point.B);
 				}
 			});
+		}
+
+		void recordButton_Click(object sender, EventArgs e)
+		{
+			if (!IsRecording)
+			{
+				var recordFile = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), string.Format("ShadowWallRecording{0}.csv", recordingsMade++));
+				RecordFileStream = new FileStream(recordFile, FileMode.Create, FileAccess.Write);
+			}
+			else
+			{
+				RecordFileStream.Flush();
+				RecordFileStream.Dispose();
+			}
+
+			IsRecording = !IsRecording;
 		}
 
 		#region 3D
@@ -233,13 +267,47 @@ namespace ShadowWall
 
 		#endregion
 
+		public event PropertyChangedEventHandler PropertyChanged;
 		public int WallWidth { get { return 180; } }
 		public int WallHeight { get { return 120; } }
 		public int WallBreadth { get { return 800; } }
 		public IEnumerable<PointFrame> CurrentCloud { get; private set; }
+		public string RecordButtonContent
+		{
+			get
+			{
+				return IsRecording ? "Stop recording" : "Start recording";
+			}
+		}
+
+		bool IsRecording
+		{
+			get
+			{
+				return isRecording;
+			}
+			set
+			{
+				isRecording = value;
+				PropertyChanged(this, new PropertyChangedEventArgs("RecordButtonContent"));
+			}
+		}
+
+		#region Recording state
+
+		bool isRecording = false;
+		Stream RecordFileStream { get; set; }
+		int recordingsMade = 0;
+
+		#endregion
+
+		#region Snapshot state
 
 		object currentCloudLock = new object();
 		int snapshotsTaken = 0;
+
+		#endregion
+
 		IEnumerable<IPointCloudFilter> filters;
 	}
 }

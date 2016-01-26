@@ -15,7 +15,7 @@ namespace ShadowWall
 			}
 
 			var index = 0;
-			foreach(var currentPoint in currentCloud)
+			foreach (var currentPoint in currentCloud)
 			{
 				var previousPoint = previousCloud[index];
 				if (currentPoint.Z < previousPoint.Z - minimumDelta || previousPoint.Z + minimumDelta < currentPoint.Z)
@@ -38,7 +38,7 @@ namespace ShadowWall
 		}
 
 		#region Parameters
-		int minimumDelta = 100;
+		int minimumDelta = 50;
 		int agingFactor = 10;
 		#endregion
 
