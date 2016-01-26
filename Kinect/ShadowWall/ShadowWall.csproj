@@ -129,11 +129,30 @@
     <None Include="Resources\ShadowWall.exe.csv" />
     <None Include="Resources\ShadowWall.exe.point.csv" />
     <None Include="Resources\ShadowWall.exe.skeleton.csv" />
+    <None Include="Resources\Snapshots\100\ShadowWallSnapshot0.csv" />
+    <None Include="Resources\Snapshots\100\ShadowWallSnapshot1.csv" />
+    <None Include="Resources\Snapshots\100\ShadowWallSnapshot2.csv" />
+    <None Include="Resources\Snapshots\100\ShadowWallSnapshot3.csv" />
+    <None Include="Resources\Snapshots\150\ShadowWallSnapshot1.csv" />
+    <None Include="Resources\Snapshots\150\ShadowWallSnapshot2.csv" />
+    <None Include="Resources\Snapshots\150\ShadowWallSnapshot3.csv" />
+    <None Include="Resources\Snapshots\150\ShadowWallSnapshot4.csv" />
+    <None Include="Resources\Snapshots\150\ShadowWallSnapshot5.csv" />
+    <None Include="Resources\Snapshots\150\ShadowWallSnapshot6.csv" />
+    <None Include="Resources\Snapshots\150\ShadowWallSnapshot7.csv" />
+    <None Include="Resources\Snapshots\50\ShadowWallSnapshot0.csv" />
+    <None Include="Resources\Snapshots\50\ShadowWallSnapshot1.csv" />
+    <None Include="Resources\Snapshots\50\ShadowWallSnapshot2.csv" />
+    <None Include="Resources\Snapshots\50\ShadowWallSnapshot3.csv" />
+    <None Include="Resources\Snapshots\50\ShadowWallSnapshot4.csv" />
+    <None Include="Resources\Snapshots\50\ShadowWallSnapshot5.csv" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Resource Include="Resources\Snapshots\snapshotLegend.txt" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

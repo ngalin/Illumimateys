@@ -1,0 +1,35 @@
+Kinnect height: 1.93mts
+	
+Floor distance: 50cm
+	Snapshot @50cms, center: ShadowWallSnapshot0
+	Snapshot @50cms, left: ShadowWallSnapshot1
+	Snapshot @50cms, right: ShadowWallSnapshot2
+	Snapshot @200cms, center: ShadowWallSnapshot3
+	Snapshot @200cms, left: ShadowWallSnapshot4
+	Snapshot @200cms, right: ShadowWallSnapshot5
+
+Floor distance: 100cm:
+	Approx. Height @Floor: 182cms
+	Approx. Width @Floor: 357cms
+	Approx. Height @2mts: 169cms
+	Approx. Width @2mts: 480cms
+	
+	Snapshot @100cms, center: ShadowWallSnapshot0
+	Snapshot @100cms, left: ShadowWallSnapshot1
+	Snapshot @100cms, right: ShadowWallSnapshot2
+	Snapshot @200cms, center: ShadowWallSnapshot3
+	Snapshot @200cms, left: ShadowWallSnapshot4
+	Snapshot @200cms, right: ShadowWallSnapshot5
+	
+Floor distance: 150cm
+	Approx. Height @Floor: 202cms
+	Approx. Width @Floor: 400cms
+	Approx. Height @2mts: 200cms
+	Approx. Width @2mts: 460cms
+	
+	Snapshot @150cms, center: ShadowWallSnapshot2
+	Snapshot @150cms, left: ShadowWallSnapshot3
+	Snapshot @150cms, right: ShadowWallSnapshot4
+	Snapshot @200cms, center: ShadowWallSnapshot5
+	Snapshot @200cms, left: ShadowWallSnapshot6
+	Snapshot @200cms, right: ShadowWallSnapshot7

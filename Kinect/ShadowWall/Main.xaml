@@ -7,9 +7,26 @@
         mc:Ignorable="d"
         Title="Main" Height="700" Width="1000" MinHeight="440" MinWidth="190">
     <Grid x:Name="KinectGrid" Background="Black">
-        <Canvas x:Name="KinectCanvas" HorizontalAlignment="Left" Height="{Binding ElementName=KinectGrid, Path=ActualHeight}" Margin="0,0,0,0" VerticalAlignment="Top" Width="{Binding ElementName=KinectGrid, Path=ActualWidth}"/>
-        <Image x:Name="ColorImage" HorizontalAlignment="Left" Height="123" Margin="10,10,0,0" VerticalAlignment="Top" Width="148"/>
-        <Image x:Name="DepthImage" HorizontalAlignment="Left" Height="123" Margin="10,138,0,0" VerticalAlignment="Top" Width="148"/>
-        <Image x:Name="InfraredImage" HorizontalAlignment="Left" Height="123" Margin="10,266,0,0" VerticalAlignment="Top" Width="148"/>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="*" />
+		</Grid.RowDefinitions>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+		<Grid  Grid.ColumnSpan="2" Grid.Column="1" Grid.Row="0" Height="498" Width="592">
+			<Image x:Name="ColorImage" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+		</Grid>
+		<Grid Grid.Row="0" Height="123" Width="148">
+			<Canvas x:Name="KinectCanvas" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"/>
+		</Grid>
+		<Grid Grid.Row="1" Height="123" Width="148">
+			<Image x:Name="DepthImage" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+		</Grid>
+		<Grid Grid.Row="2" Height="123" Width="148">
+			<Image x:Name="InfraredImage" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+		</Grid>
     </Grid>
 </Window>
