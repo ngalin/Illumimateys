@@ -12,17 +12,6 @@ namespace ShadowWall.Api
 {
 	public class Serializer
 	{
-		public static void Save(Body body)
-		{
-			using (var file = new FileStream(FilePath, FileMode.Append))
-			{
-				using (var stream = new StreamWriter(file))
-				{
-					stream.WriteLine(string.Join(",", body.Joints.Select(j => string.Format("{0}|{1}|{2}|{3}", j.Value.JointType, j.Value.Position.X, j.Value.Position.Y, j.Value.Position.Z))));
-				}
-			}
-		}
-
 		public static void Save(int x, int y, int z, byte r, byte g, byte b)
 		{
 			using (var file = new FileStream(FilePath, FileMode.Append))
@@ -34,32 +23,9 @@ namespace ShadowWall.Api
 			}
 		}
 
-		public static IEnumerable<BodyFrame> LoadSkeleton()
+		public static IEnumerable<PointFrame> LoadPoint(string filePath = null)
 		{
-			using (var file = new FileStream(FilePath, FileMode.Open))
-			{
-				using (var stream = new StreamReader(file))
-				{
-					string bodySerialized;
-					while ((bodySerialized = stream.ReadLine()) != null)
-					{
-						var body = new BodyFrame();
-						var jointsSerialized = bodySerialized.Split(new char[] { ',' });
-						foreach (var jointSerialized in jointsSerialized)
-						{
-							var jointProperties = jointSerialized.Split(new char[] { '|' });
-							body.Joints.Add(new Joint { JointType = (JointType)Enum.Parse(typeof(JointType), jointProperties[0]), Position = new CameraSpacePoint { X = float.Parse(jointProperties[1]), Y = float.Parse(jointProperties[2]), Z = float.Parse(jointProperties[3]) } });
-						}
-
-						yield return body;
-					}
-				}
-			}
-		}
-
-		public static IEnumerable<PointFrame> LoadPoint()
-		{
-			using (var file = new FileStream(FilePath, FileMode.Open))
+			using (var file = new FileStream(filePath ?? FilePath, FileMode.Open))
 			{
 				using (var stream = new StreamReader(file))
 				{

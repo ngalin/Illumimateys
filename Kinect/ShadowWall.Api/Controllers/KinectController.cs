@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Web.Http;
 using ShadowWall.Api.Repository;
 
@@ -12,14 +13,18 @@ namespace ShadowWall.Api.Controllers
     {
 		public IHttpActionResult Get()
 		{
+			var points = new List<PointFrame>();
 			var kinectDepth = new KinectDepth();
-			kinectDepth.Rendered += kinectDepth_Rendered;
-			return Ok();
-		}
+			//kinectDepth.Rendered = data => points = data.ToList();
 
-		private void kinectDepth_Rendered(object sender, PointEventArgs e)
-		{
-			throw new NotImplementedException();
+			//var task = Request.Content.ReadAsMultipartAsync().ContinueWith<IEnumerable<PointFrame>>(t => 
+			//{
+			//	IEnumerable<PointFrame> points;
+			//	//kinectDepth.Rendered = await lambda;
+			//	return points;
+			//});
+
+			return Ok(kinectDepth.GetPoints());
 		}
 	}
 }

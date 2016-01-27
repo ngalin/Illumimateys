@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using Microsoft.Kinect;
 
 namespace ShadowWall.Api.Repository
@@ -10,48 +9,51 @@ namespace ShadowWall.Api.Repository
 	{
 		public KinectDepth()
 		{
-			var sensor = KinectSensor.GetDefault();
-			sensor.Open();
+			//var sensor = KinectSensor.GetDefault();
+			//sensor.Open();
 
-			var depthReader = sensor.DepthFrameSource.OpenReader();
-			depthReader.FrameArrived += depthReader_FrameArrived;
+			//var depthReader = sensor.DepthFrameSource.OpenReader();
+			//depthReader.FrameArrived += depthReader_FrameArrived;
 		}
 
-		public int WallWidth { get { return 180; } }
-		public int WallHeight { get { return 120; } }
-		public int WallBreadth { get { return 800; } }
-
-		public event PointEventHandler Rendered;
-
-		private void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
+		public IEnumerable<PointFrame> GetPoints()
 		{
-			using (var frame = e.FrameReference.AcquireFrame())
-			{
-				if (frame != null)
-				{
-					var width = frame.FrameDescription.Width;
-					var height = frame.FrameDescription.Height;
-					var depths = new ushort[width * height];
-
-					frame.CopyFrameDataToArray(depths);
-
-					for (int i = 0; i < depths.Length; ++i)
-					{
-						depths[i] = depths[i] > (this.WallBreadth * 10) ? default(ushort) : depths[i];
-					}
-
-					if (this.Rendered != null)
-					{
-						this.Rendered(this, new PointEventArgs() { Points = this.ConvertToPointCloud(depths, width, height).ToList() });
-					}
-				}
-			}
+			return Serializer.LoadPoint(@"C:\Work\Git\Illumimateys\Kinect\ShadowWall.Api\Resources\ShadowWall.exe.csv");
 		}
 
-		private IEnumerable<PointFrame> ConvertToPointCloud(ushort[] array, int width, int height)
-		{
-			return Serializer.LoadPoint();
+		//public int WallWidth { get { return 180; } }
+		//public int WallHeight { get { return 120; } }
+		//public int WallBreadth { get { return 800; } }
 
+		//public Func<IEnumerable<PointFrame>, IEnumerable<PointFrame>> Rendered;
+
+		//private void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
+		//{
+		//	using (var frame = e.FrameReference.AcquireFrame())
+		//	{
+		//		if (frame != null)
+		//		{
+		//			var width = frame.FrameDescription.Width;
+		//			var height = frame.FrameDescription.Height;
+		//			var depths = new ushort[width * height];
+
+		//			frame.CopyFrameDataToArray(depths);
+
+		//			for (int i = 0; i < depths.Length; ++i)
+		//			{
+		//				depths[i] = depths[i] > (this.WallBreadth * 10) ? default(ushort) : depths[i];
+		//			}
+
+		//			if (this.Rendered != null)
+		//			{
+		//				this.Rendered(this.ConvertToPointCloud(depths, width, height).ToList());
+		//			}
+		//		}
+		//	}
+		//}
+
+		//private IEnumerable<PointFrame> ConvertToPointCloud(ushort[] array, int width, int height)
+		//{
 			//var points = new List<PointFrame>();
 
 			//for (int i = 0; i < array.Length; ++i)
@@ -76,6 +78,6 @@ namespace ShadowWall.Api.Repository
 			//{
 			//	yield return point;
 			//}
-		}
+		//}
 	}
 }
