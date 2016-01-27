@@ -36,7 +36,7 @@ namespace ShadowWall
 			depthReader.FrameArrived += depthReader_FrameArrived;
 		}
 
-		public int Distance { get { return 2000; } }
+		public int Distance { get { return 8000; } }
 
 		private void MainWindow_Closed(object sender, EventArgs e)
 		{
