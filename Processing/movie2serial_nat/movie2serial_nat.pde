@@ -22,43 +22,68 @@
     THE SOFTWARE.
 */
 
+// Imports
+//=====================================================================================
+
 import gab.opencv.*;
 import processing.video.*;
 import processing.video.Movie;
 import processing.serial.*;
 import java.awt.Rectangle;
 
-int WIDTH=480, HEIGHT=400;
+// Constants
+//=====================================================================================
+
+int WidthInPixels = 480;
+int HeightInPixels = 400;
+int MaximumNumberOfPorts = 24;
 
 // Must be an absolute path. If this file can't be found, will open a capture instead.
-String movieFileName = "/tmp/shadowwall.avi";
-//String movieFileName = "/Users/srdjankrstic/Programming/Illumimateys/PhilipsCircle_10secs.avi";
+//String MovieFileName = "/tmp/shadowwall.avi";
+String MovieFileName = "/Users/srdjankrstic/Programming/PhilipsCircle_10secs.avi";
+//String MovieFileName = "/non-existent_file.avi";
+
+// Variables
+//=====================================================================================
 
 // Only one of these two sources will be non-null, depending on whether the movie file is found.
-Movie myMovie;
-Capture myCapture;
+Movie movieStream;
+Capture processingStream;
 
+// Processing
 OpenCV opencv;
+PImage frameBuffer;
+PImage lastRenderFrame;
+ArrayList<Contour> contours;
 
-// The most recent frame from the movie or capture, after processing
-PImage lastRenderedFrame;
-
-int numPorts=0;  // the number of serial ports in use
-int maxPorts=24; // maximum number of serial ports
-
-Serial[] ledSerial = new Serial[maxPorts];     // each port's actual Serial port
-Rectangle[] ledArea = new Rectangle[maxPorts]; // the area of the movie each port gets, in % (0-100)
-boolean[] ledLayout = new boolean[maxPorts];   // layout of rows, true = even is left->right
-PImage[] ledImage = new PImage[maxPorts];      // image sent to each port
+// LED panels
+Serial[] ledSerial = new Serial[MaximumNumberOfPorts];     // each port's actual Serial port
+Rectangle[] ledArea = new Rectangle[MaximumNumberOfPorts]; // the area of the movie each port gets, in % (0-100)
+boolean[] ledLayout = new boolean[MaximumNumberOfPorts];   // layout of rows, true = even is left->right
+PImage[] ledImage = new PImage[MaximumNumberOfPorts];      // image sent to each port
 
 float gamma = 1.7;
-int[] gammatable = new int[256];
+int[] gammaTable = new int[256];
 
-int errorCount=0;
-float framerate=0;
+int numberOfPortsInUse = 0;
+int errorCount = 0;
+float framerate = 0;
+
+// Setup methods
+//=====================================================================================
 
 void setup() {
-  // Set up serial ports
+  // Create debug window to display the video stream (ensure valid pixel dimension)
+  assert WidthInPixels == 480; assert HeightInPixels == 400;
+  size(480, 480);
+  
+  initialiseSerialPorts();
+  initialiseGammaTable();
+  initialiseVideoStream();
+  initialiseProcessingPipeline();
+}
+ 
+void initialiseSerialPorts() {
   String[] list = Serial.list();
   delay(20);
   println("Serial Ports:");
@@ -67,63 +92,69 @@ void setup() {
   //serialConfigure("/dev/ttyACM1");
   //serialConfigure("/dev/tty.usbmodem1350351");
   if (errorCount > 0) exit();
+}
 
-  // Initialize gamma table
-  for (int i=0; i < 256; i++) {
-    gammatable[i] = (int)(pow((float)i / 255.0, gamma) * 255.0 + 0.5);
-  }
-
-  // Initialize processing pipeline
-  opencv = new OpenCV(this, WIDTH, HEIGHT);
-  //opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);
-
-  // Initialize debugging display window.
-  // Verify the display window is the same dimensions as the panel video.
-  // Processing is too shit to just use the variables directly.
-  assert WIDTH == 480; assert HEIGHT == 400;
-  size(480, 400);
-
-  // Open file or camera
-  File movieFile = new File(movieFileName);
-  if (movieFile.exists()) {
-    myMovie = new Movie(this, movieFileName);
-    myMovie.loop();
-  } else {
-    print("Can't find " + movieFileName);
-   //exit();
-   //return;
-   myCapture = new Capture(this, WIDTH, HEIGHT);
-   myCapture.start();
+void initialiseGammaTable() {
+  for (int i = 0; i < 256; i++) {
+    gammaTable[i] = (int)(pow((float)i / 255.0, gamma) * 255.0 + 0.5);
   }
 }
+
+void initialiseVideoStream() {  
+  // Open file or camera
+  File movieFile = new File(MovieFileName);
+  if (movieFile.exists()) {
+    movieStream = new Movie(this, MovieFileName);
+    movieStream.loop();
+  } else {
+    print("Can't find " + MovieFileName);
+    processingStream = new Capture(this, WidthInPixels, HeightInPixels);
+    processingStream.start();
+  }
+}
+
+void initialiseProcessingPipeline() {
+  //if (processingStream == null) return;
+  
+  opencv = new OpenCV(this, WidthInPixels, HeightInPixels);
+  opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);
+}
+
+// Processing methods
+//=====================================================================================
  
 // Called every time a new frame is available to read.
-void movieEvent(Movie m) {
-  // Read and process the movie's next frame
-  m.read();
-  lastRenderedFrame = m.copy();
-  
-  //opencv.loadImage(m);
-  // opencv.getSnapshot comes out grayscale, I'm not sure why.
-  //lastRenderedFrame = opencv.getSnapshot();
-  //opencv.findCannyEdges(20,75);
-  //canny = opencv.getSnapshot();
-  
-  sendFrameToPanels(lastRenderedFrame);
+void movieEvent(Movie movieFrame) {
+  movieFrame.read();
+  lastRenderFrame = movieFrame.copy();
+  //lastRenderFrame = processFrame(frameBuffer);
+  sendFrameToLedPanels(lastRenderFrame);
 }
 
-void captureEvent(Capture c) {
-  c.read();
-  lastRenderedFrame = c.copy();
-  sendFrameToPanels(lastRenderedFrame);
+void captureEvent(Capture capturedFrame) {
+  capturedFrame.read();
+  frameBuffer = capturedFrame.copy();
+  lastRenderFrame = processFrame(frameBuffer);
+  sendFrameToLedPanels(lastRenderFrame);
 }
 
-void sendFrameToPanels(PImage frame) {
+PImage processFrame(PImage frame) {
+  opencv.loadImage(frame);
+  opencv.findCannyEdges(20,75);
+  
+  frame = opencv.getSnapshot();
+  return frame;
+}
+
+// Processing methods
+//=====================================================================================
+
+void sendFrameToLedPanels(PImage frame) {
   // Write the frame to panels
   //if (framerate == 0) framerate = m.getSourceFrameRate();
   framerate = 30.0; // TODO, how to read the frame rate???
   
-  for (int i=0; i < numPorts; i++) {    
+  for (int i=0; i < numberOfPortsInUse; i++) {    
     // copy a portion of the movie's image to the LED image
     int xoffset = percentage(frame.width, ledArea[i].x);
     int yoffset = percentage(frame.height, ledArea[i].y);
@@ -174,7 +205,7 @@ void image2data(PImage image, byte[] data, boolean layout) {
       for (int i=0; i < 8; i++) {
         // fetch 8 pixels from the image, 1 for each pin
         pixel[i] = image.pixels[x + (y + linesPerPin * i) * image.width];
-        pixel[i] = colorWiring(pixel[i]);
+        pixel[i] = convert_RGB_2_GRB(pixel[i]);
        // pixel[i] = pixel[i] % 20; 
       //  pixel[i] = pixel[i] & 0x1F1F1F;
       pixel[i] = pixel[i] & 0xf0f0f0;
@@ -193,36 +224,36 @@ void image2data(PImage image, byte[] data, boolean layout) {
   } 
 }
 
-// translate the 24 bit color from RGB to the actual
-// order used by the LED wiring.  GRB is the most common.
-int colorWiring(int c) {
-  int red = (c & 0xFF0000) >> 16;
-  int green = (c & 0x00FF00) >> 8;
-  int blue = (c & 0x0000FF);
-  red = gammatable[red];
-  green = gammatable[green];
-  blue = gammatable[blue];
-  return (green << 16) | (red << 8) | (blue); // GRB - most common wiring
+int convert_RGB_2_GRB(int colour) {
+  int red = (colour & 0xFF0000) >> 16;
+  int green = (colour & 0x00FF00) >> 8;
+  int blue = (colour & 0x0000FF);
+  
+  red = gammaTable[red];
+  green = gammaTable[green];
+  blue = gammaTable[blue];
+  
+  return (green << 16) | (red << 8) | (blue);
 }
 
 // ask a Teensy board for its LED configuration, and set up the info for it.
 void serialConfigure(String portName) {
-  if (numPorts >= maxPorts) {
+  if (numberOfPortsInUse >= MaximumNumberOfPorts) {
     println("too many serial ports, please increase maxPorts");
     errorCount++;
     return;
   }
   try {
-    ledSerial[numPorts] = new Serial(this, portName);
-    if (ledSerial[numPorts] == null) throw new NullPointerException();
-    ledSerial[numPorts].write('?');
+    ledSerial[numberOfPortsInUse] = new Serial(this, portName);
+    if (ledSerial[numberOfPortsInUse] == null) throw new NullPointerException();
+    ledSerial[numberOfPortsInUse].write('?');
   } catch (Throwable e) {
     println("Serial port " + portName + " does not exist or is non-functional");
     errorCount++;
     return;
   }
   delay(50);
-  String line = ledSerial[numPorts].readStringUntil(10);
+  String line = ledSerial[numberOfPortsInUse].readStringUntil(10);
   if (line == null) {
     println("Serial port " + portName + " is not responding.");
     println("Is it really a Teensy 3.0 running VideoDisplay?");
@@ -236,19 +267,19 @@ void serialConfigure(String portName) {
     return;
   }
   // only store the info and increase numPorts if Teensy responds properly
-  ledImage[numPorts] = new PImage(Integer.parseInt(param[0]), Integer.parseInt(param[1]), RGB);
-  ledArea[numPorts] = new Rectangle(Integer.parseInt(param[5]), Integer.parseInt(param[6]),
+  ledImage[numberOfPortsInUse] = new PImage(Integer.parseInt(param[0]), Integer.parseInt(param[1]), RGB);
+  ledArea[numberOfPortsInUse] = new Rectangle(Integer.parseInt(param[5]), Integer.parseInt(param[6]),
                      Integer.parseInt(param[7]), Integer.parseInt(param[8]));
-  ledLayout[numPorts] = (Integer.parseInt(param[5]) == 0);
-  numPorts++;
+  ledLayout[numberOfPortsInUse] = (Integer.parseInt(param[5]) == 0);
+  numberOfPortsInUse++;
 }
 
 // Called to render the screen - on this computer, not the LED panel.
 // If using a capture, rather than movie, this is where we read the new frame.
 void draw() {
   // Show the frame on screen
-  if (lastRenderedFrame != null) {
-    image(lastRenderedFrame, 0, 80);
+  if (lastRenderFrame != null) {
+    image(lastRenderFrame, 0, 80);
   } else {
     print ("Movie not ready yet");
     return;
@@ -256,13 +287,15 @@ void draw() {
   
   // then try to show what was most recently sent to the LEDs
   // by displaying all the images for each port.
-  for (int i=0; i < numPorts; i++) {
+  for (int i = 0; i < numberOfPortsInUse; i++) {
     // compute the intended size of the entire LED array
     int xsize = percentageInverse(ledImage[i].width, ledArea[i].width);
     int ysize = percentageInverse(ledImage[i].height, ledArea[i].height);
+    
     // computer this image's position within it
     int xloc =  percentage(xsize, ledArea[i].x);
     int yloc =  percentage(ysize, ledArea[i].y);
+    
     // show what should appear on the LEDs
     image(ledImage[i], 240 - xsize / 2 + xloc, 10 + yloc);
   } 
@@ -271,11 +304,13 @@ void draw() {
 // respond to mouse clicks as pause/play
 boolean isPlaying = true;
 void mousePressed() {
+  if (movieStream == null) return;
+  
   if (isPlaying) {
-    myMovie.pause();
+    movieStream.pause();
     isPlaying = false;
   } else {
-    myMovie.play();
+    movieStream.play();
     isPlaying = true;
   }
 }
