@@ -22,20 +22,6 @@
     THE SOFTWARE.
 */
 
-// To configure this program, edit the following sections:
-//
-//  1: change myMovie to open a video file of your choice    ;-)
-//
-//  2: edit the serialConfigure() lines in setup() for your
-//     serial device names (Mac, Linux) or COM ports (Windows)
-//
-//  3: if your LED strips have unusual color configuration,
-//     edit colorWiring().  Nearly all strips have GRB wiring,
-//     so normally you can leave this as-is.
-//
-//  4: if playing 50 or 60 Hz progressive video (or faster),
-//     edit framerate in movieEvent().
-
 import gab.opencv.*;
 import processing.video.*;
 import processing.video.Movie;
@@ -44,18 +30,16 @@ import java.awt.Rectangle;
 
 int WIDTH=480, HEIGHT=400;
 
-// Must be an absolute path
+// Must be an absolute path. If this file can't be found, will open a capture instead.
 String movieFileName = "/tmp/shadowwall.avi";
 
-//Movie myMovie = new Movie(this, "/tmp/Toy_Story.avi");
-//Dan - we need to plumb thru the Kinect processed video into here:
-//Movie myMovie = new Movie(this, "/Users/ngalin/Work/Vivid2016/OctoWS2811/OctoWS2811/examples/VideoDisplay/Processing/movie2serial/tmp/cinedemo.avi");
+// Only one of these two sources will be non-null, depending on whether the movie file is found.
 Movie myMovie;
 Capture myCapture;
 
 OpenCV opencv;
 
-// The most recent frame from the movie, after processing
+// The most recent frame from the movie or capture, after processing
 PImage lastRenderedFrame;
 
 int numPorts=0;  // the number of serial ports in use
@@ -112,7 +96,7 @@ void setup() {
   }
 }
  
-// Called every time a new frame is available to read
+// Called every time a new frame is available to read.
 void movieEvent(Movie m) {
   // Read and process the movie's next frame
   m.read();
@@ -124,6 +108,12 @@ void movieEvent(Movie m) {
   //opencv.findCannyEdges(20,75);
   //canny = opencv.getSnapshot();
   
+  sendFrameToPanels(lastRenderedFrame);
+}
+
+void captureEvent(Capture c) {
+  c.read();
+  lastRenderedFrame = c.copy();
   sendFrameToPanels(lastRenderedFrame);
 }
 
@@ -252,9 +242,10 @@ void serialConfigure(String portName) {
   numPorts++;
 }
 
-// Called to render the screen - on this computer, not the LED panel
+// Called to render the screen - on this computer, not the LED panel.
+// If using a capture, rather than movie, this is where we read the new frame.
 void draw() {
-  // show the original video
+  // Show the frame on screen
   if (lastRenderedFrame != null) {
     image(lastRenderedFrame, 0, 80);
   } else {
