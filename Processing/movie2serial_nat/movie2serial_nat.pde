@@ -36,18 +36,26 @@
 //  4: if playing 50 or 60 Hz progressive video (or faster),
 //     edit framerate in movieEvent().
 
+import gab.opencv.*;
 import processing.video.*;
 import processing.video.Movie;
 import processing.serial.*;
 import java.awt.Rectangle;
 
+int WIDTH=480, HEIGHT=400;
+
 // Must be an absolute path
-String movieFileName = "/Users/alex/Desktop/sw.avi";
+String movieFileName = "/tmp/shadowwall.avi";
 
 //Movie myMovie = new Movie(this, "/tmp/Toy_Story.avi");
 //Dan - we need to plumb thru the Kinect processed video into here:
 //Movie myMovie = new Movie(this, "/Users/ngalin/Work/Vivid2016/OctoWS2811/OctoWS2811/examples/VideoDisplay/Processing/movie2serial/tmp/cinedemo.avi");
 Movie myMovie;
+
+OpenCV opencv = new OpenCV(this, WIDTH, HEIGHT);
+
+// The most recent frame from the movie, after processing
+PImage lastRenderedFrame;
 
 int numPorts=0;  // the number of serial ports in use
 int maxPorts=24; // maximum number of serial ports
@@ -83,6 +91,10 @@ void setup() {
   for (int i=0; i < 256; i++) {
     gammatable[i] = (int)(pow((float)i / 255.0, gamma) * 255.0 + 0.5);
   }
+  
+  // Verify the display window is the same dimensions as the panel video.
+  // Processing is too shit to just use the variables directly.
+  assert WIDTH == 480; assert HEIGHT == 400;
   size(480, 400);  // create the window
   myMovie.loop();  // start the movie :-)
 }
@@ -90,9 +102,16 @@ void setup() {
  
 // Called every time a new frame is available to read
 void movieEvent(Movie m) {
-  // read the movie's next frame
+  // Read and process the movie's next frame
   m.read();
+  lastRenderedFrame = m.copy();
   
+  //opencv.loadImage(m);
+  //lastRenderedFrame = opencv.getSnapshot();
+  //opencv.findCannyEdges(20,75);
+  //canny = opencv.getSnapshot();
+  
+  // Write the frame to panels
   //if (framerate == 0) framerate = m.getSourceFrameRate();
   framerate = 30.0; // TODO, how to read the frame rate???
   
@@ -219,7 +238,12 @@ void serialConfigure(String portName) {
 // Called to render the screen - on this computer, not the LED panel
 void draw() {
   // show the original video
-  image(myMovie, 0, 80);
+  if (lastRenderedFrame != null) {
+    image(lastRenderedFrame, 0, 80);
+  } else {
+    print ("Movie not ready yet");
+    return;
+  }
   
   // then try to show what was most recently sent to the LEDs
   // by displaying all the images for each port.
