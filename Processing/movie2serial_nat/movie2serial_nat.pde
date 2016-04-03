@@ -37,14 +37,17 @@
 //     edit framerate in movieEvent().
 
 import processing.video.*;
+import processing.video.Movie;
 import processing.serial.*;
 import java.awt.Rectangle;
+
+// Must be an absolute path
+String movieFileName = "/Users/alex/Desktop/sw.avi";
 
 //Movie myMovie = new Movie(this, "/tmp/Toy_Story.avi");
 //Dan - we need to plumb thru the Kinect processed video into here:
 //Movie myMovie = new Movie(this, "/Users/ngalin/Work/Vivid2016/OctoWS2811/OctoWS2811/examples/VideoDisplay/Processing/movie2serial/tmp/cinedemo.avi");
-Movie myMovie = new Movie(this, "/Users/ngalin/Downloads/sample.avi");
-float gamma = 1.7;
+Movie myMovie;
 
 int numPorts=0;  // the number of serial ports in use
 int maxPorts=24; // maximum number of serial ports
@@ -53,18 +56,29 @@ Serial[] ledSerial = new Serial[maxPorts];     // each port's actual Serial port
 Rectangle[] ledArea = new Rectangle[maxPorts]; // the area of the movie each port gets, in % (0-100)
 boolean[] ledLayout = new boolean[maxPorts];   // layout of rows, true = even is left->right
 PImage[] ledImage = new PImage[maxPorts];      // image sent to each port
+
+float gamma = 1.7;
 int[] gammatable = new int[256];
+
 int errorCount=0;
 float framerate=0;
 
 void setup() {
+  File movieFile = new File(movieFileName);
+  if (!movieFile.exists()) {
+   print("Can't find " + movieFileName);
+   exit();
+   return;
+  }
+  myMovie = new Movie(this, movieFileName);
+  
   String[] list = Serial.list();
   delay(20);
-  println("Serial Ports List:");
-  println(list);
+  println("Serial Ports:");
+  println(join(list, "\n"));
   //serialConfigure("/dev/ttyACM0");  // change these to your port names
   //serialConfigure("/dev/ttyACM1");
-  serialConfigure("/dev/tty.usbmodem1350351");
+  //serialConfigure("/dev/tty.usbmodem1350351");
   if (errorCount > 0) exit();
   for (int i=0; i < 256; i++) {
     gammatable[i] = (int)(pow((float)i / 255.0, gamma) * 255.0 + 0.5);
@@ -74,7 +88,7 @@ void setup() {
 }
 
  
-// movieEvent runs for each new frame of movie data
+// Called every time a new frame is available to read
 void movieEvent(Movie m) {
   // read the movie's next frame
   m.read();
@@ -202,7 +216,7 @@ void serialConfigure(String portName) {
   numPorts++;
 }
 
-// draw runs every time the screen is redrawn - show the movie...
+// Called to render the screen - on this computer, not the LED panel
 void draw() {
   // show the original video
   image(myMovie, 0, 80);
