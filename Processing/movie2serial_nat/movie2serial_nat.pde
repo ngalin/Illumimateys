@@ -32,6 +32,7 @@ int WIDTH=480, HEIGHT=400;
 
 // Must be an absolute path. If this file can't be found, will open a capture instead.
 String movieFileName = "/tmp/shadowwall.avi";
+//String movieFileName = "/Users/srdjankrstic/Programming/Illumimateys/PhilipsCircle_10secs.avi";
 
 // Only one of these two sources will be non-null, depending on whether the movie file is found.
 Movie myMovie;
