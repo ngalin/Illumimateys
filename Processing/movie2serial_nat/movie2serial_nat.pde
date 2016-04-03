@@ -51,8 +51,9 @@ String movieFileName = "/tmp/shadowwall.avi";
 //Dan - we need to plumb thru the Kinect processed video into here:
 //Movie myMovie = new Movie(this, "/Users/ngalin/Work/Vivid2016/OctoWS2811/OctoWS2811/examples/VideoDisplay/Processing/movie2serial/tmp/cinedemo.avi");
 Movie myMovie;
+Capture myCapture;
 
-OpenCV opencv = new OpenCV(this, WIDTH, HEIGHT);
+OpenCV opencv;
 
 // The most recent frame from the movie, after processing
 PImage lastRenderedFrame;
@@ -72,14 +73,7 @@ int errorCount=0;
 float framerate=0;
 
 void setup() {
-  File movieFile = new File(movieFileName);
-  if (!movieFile.exists()) {
-   print("Can't find " + movieFileName);
-   exit();
-   return;
-  }
-  myMovie = new Movie(this, movieFileName);
-  
+  // Set up serial ports
   String[] list = Serial.list();
   delay(20);
   println("Serial Ports:");
@@ -88,17 +82,35 @@ void setup() {
   //serialConfigure("/dev/ttyACM1");
   //serialConfigure("/dev/tty.usbmodem1350351");
   if (errorCount > 0) exit();
+
+  // Initialize gamma table
   for (int i=0; i < 256; i++) {
     gammatable[i] = (int)(pow((float)i / 255.0, gamma) * 255.0 + 0.5);
   }
-  
+
+  // Initialize processing pipeline
+  opencv = new OpenCV(this, WIDTH, HEIGHT);
+  //opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);
+
+  // Initialize debugging display window.
   // Verify the display window is the same dimensions as the panel video.
   // Processing is too shit to just use the variables directly.
   assert WIDTH == 480; assert HEIGHT == 400;
-  size(480, 400);  // create the window
-  myMovie.loop();  // start the movie :-)
-}
+  size(480, 400);
 
+  // Open file or camera
+  File movieFile = new File(movieFileName);
+  if (movieFile.exists()) {
+    myMovie = new Movie(this, movieFileName);
+    myMovie.loop();
+  } else {
+    print("Can't find " + movieFileName);
+   //exit();
+   //return;
+   myCapture = new Capture(this, WIDTH, HEIGHT);
+   myCapture.start();
+  }
+}
  
 // Called every time a new frame is available to read
 void movieEvent(Movie m) {
@@ -107,21 +119,26 @@ void movieEvent(Movie m) {
   lastRenderedFrame = m.copy();
   
   //opencv.loadImage(m);
+  // opencv.getSnapshot comes out grayscale, I'm not sure why.
   //lastRenderedFrame = opencv.getSnapshot();
   //opencv.findCannyEdges(20,75);
   //canny = opencv.getSnapshot();
   
+  sendFrameToPanels(lastRenderedFrame);
+}
+
+void sendFrameToPanels(PImage frame) {
   // Write the frame to panels
   //if (framerate == 0) framerate = m.getSourceFrameRate();
   framerate = 30.0; // TODO, how to read the frame rate???
   
   for (int i=0; i < numPorts; i++) {    
     // copy a portion of the movie's image to the LED image
-    int xoffset = percentage(m.width, ledArea[i].x);
-    int yoffset = percentage(m.height, ledArea[i].y);
-    int xwidth =  percentage(m.width, ledArea[i].width);
-    int yheight = percentage(m.height, ledArea[i].height);
-    ledImage[i].copy(m, xoffset, yoffset, xwidth, yheight,
+    int xoffset = percentage(frame.width, ledArea[i].x);
+    int yoffset = percentage(frame.height, ledArea[i].y);
+    int xwidth =  percentage(frame.width, ledArea[i].width);
+    int yheight = percentage(frame.height, ledArea[i].height);
+    ledImage[i].copy(frame, xoffset, yoffset, xwidth, yheight,
                      0, 0, ledImage[i].width, ledImage[i].height);
     // convert the LED image to raw data
     byte[] ledData =  new byte[(ledImage[i].width * ledImage[i].height * 3) + 3];
