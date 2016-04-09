@@ -33,10 +33,15 @@ import java.awt.Rectangle;
 
 // Constants
 //=====================================================================================
+// Macbook Pro ix 1280x1024. Set these to match camera's native resolution.
+int CameraWidth = 1280;
+int CameraHeight = 720;
+int TargetFrameRate = 30;
 
-int WidthInPixels = 480;
-int HeightInPixels = 400;
-int MaximumNumberOfPorts = 24;
+// The panel is 180w x 120h, i.e. 3:2. Using double resolution for processing/display.
+int WidthInPixels = 360;
+int HeightInPixels = 240;
+float PanelAspect = WidthInPixels / (float)HeightInPixels;
 
 // Must be an absolute path. If this file can't be found, will open a capture instead.
 //String MovieFileName = "/tmp/shadowwall.avi";
@@ -52,11 +57,11 @@ Capture processingStream;
 
 // Processing
 OpenCV opencv;
-PImage frameBuffer;
 PImage lastRenderFrame;
 ArrayList<Contour> contours;
 
 // LED panels
+int MaximumNumberOfPorts = 24;
 Serial[] ledSerial = new Serial[MaximumNumberOfPorts];     // each port's actual Serial port
 Rectangle[] ledArea = new Rectangle[MaximumNumberOfPorts]; // the area of the movie each port gets, in % (0-100)
 boolean[] ledLayout = new boolean[MaximumNumberOfPorts];   // layout of rows, true = even is left->right
@@ -67,22 +72,54 @@ int[] gammaTable = new int[256];
 
 int numberOfPortsInUse = 0;
 int errorCount = 0;
-float framerate = 0;
 
 // Setup methods
 //=====================================================================================
 
+void settings() {
+  // Create debug window to display the video stream.
+  size(WidthInPixels, HeightInPixels);
+}
+
 void setup() {
-  // Create debug window to display the video stream (ensure valid pixel dimension)
-  assert WidthInPixels == 480; assert HeightInPixels == 400;
-  size(480, 480);
-  
+  frameRate(TargetFrameRate);
   initialiseSerialPorts();
   initialiseGammaTable();
   initialiseVideoStream();
   initialiseProcessingPipeline();
 }
  
+// Called to render the screen - on this computer, not the LED panel.
+void draw() {
+  // Show the frame on screen
+  int xPosition = 0, yPosition = 0; 
+  if (lastRenderFrame != null) {
+    image(lastRenderFrame, xPosition, yPosition);
+  } else {
+    //print ("Movie not ready yet");
+    return;
+  }
+  
+  // then try to show what was most recently sent to the LEDs
+  // by displaying all the images for each port.
+  for (int i = 0; i < numberOfPortsInUse; i++) {
+    // compute the intended size of the entire LED array
+    int xsize = percentageInverse(ledImage[i].width, ledArea[i].width);
+    int ysize = percentageInverse(ledImage[i].height, ledArea[i].height);
+    
+    // computer this image's position within it
+    int xloc =  percentage(xsize, ledArea[i].x);
+    int yloc =  percentage(ysize, ledArea[i].y);
+    
+    // show what should appear on the LEDs
+    image(ledImage[i], 240 - xsize / 2 + xloc, 10 + yloc);
+  }
+  
+  if (frameCount % TargetFrameRate == 0) {
+    println("Frame rate:", frameRate);
+  }
+}
+
 void initialiseSerialPorts() {
   String[] list = Serial.list();
   delay(20);
@@ -108,16 +145,16 @@ void initialiseVideoStream() {
     movieStream.loop();
   } else {
     print("Can't find " + MovieFileName);
-    processingStream = new Capture(this, WidthInPixels, HeightInPixels);
+    // It's tempting to set the parameters to capture here, but not all sizes are supported and
+    // it distorts the video
+    processingStream = new Capture(this, CameraWidth, CameraHeight, TargetFrameRate);
     processingStream.start();
   }
 }
 
 void initialiseProcessingPipeline() {
   //if (processingStream == null) return;
-  
   opencv = new OpenCV(this, WidthInPixels, HeightInPixels);
-  opencv.loadCascade(OpenCV.CASCADE_FRONTALFACE);
 }
 
 // Processing methods
@@ -125,24 +162,55 @@ void initialiseProcessingPipeline() {
  
 // Called every time a new frame is available to read.
 void movieEvent(Movie movieFrame) {
+  int m = millis();
   movieFrame.read();
-  lastRenderFrame = movieFrame.copy();
-  //lastRenderFrame = processFrame(frameBuffer);
+  lastRenderFrame = processFrame(movieFrame);
   sendFrameToLedPanels(lastRenderFrame);
+  if (frameCount % TargetFrameRate == 0) {
+    println("movieEvent took", (millis() - m), "ms");
+  }
 }
 
-void captureEvent(Capture capturedFrame) {
-  capturedFrame.read();
-  frameBuffer = capturedFrame.copy();
-  lastRenderFrame = processFrame(frameBuffer);
+void captureEvent(Capture capture) {
+  int m = millis();
+  capture.read();
+  lastRenderFrame = processFrame(capture);
   sendFrameToLedPanels(lastRenderFrame);
+  if (frameCount % TargetFrameRate == 0) {
+    println("captureEvent took", (millis() - m), "ms");
+  }
 }
 
 PImage processFrame(PImage frame) {
+  frame = centerCrop(frame, WidthInPixels, HeightInPixels);
   opencv.loadImage(frame);
   opencv.findCannyEdges(20,75);
   
-  frame = opencv.getSnapshot();
+  return opencv.getSnapshot();
+  //return frame;
+}
+
+// Center-crops the largest area possible from frame and resizes
+// to width:height.
+PImage centerCrop(PImage frame, int width, int height) {
+  assert frame.width >= width && frame.height >= height;
+  float frameAspect = frame.width / (float)frame.height;
+  float cropAspect = width / (float)height;
+  //println("frame", frameAspect, "panel", PanelAspect);
+  int cropWidth, cropHeight;
+  if (frameAspect >= cropAspect) { // frame is wide
+   cropWidth = (int)(frame.height * cropAspect);
+   cropHeight = frame.height;
+  } else { // frame is tall
+   cropWidth = frame.width;
+   cropHeight = (int)(frame.width / cropAspect);
+  }
+  
+  int cropX = (frame.width - cropWidth) / 2;
+  int cropY = (frame.height - cropHeight) / 2;
+  //println("frame", frame.width, frame.height, "cropw", cropWidth, "croph", cropHeight, "at", cropX, cropY);
+  frame = frame.get(cropX, cropY, cropWidth, cropHeight);
+  frame.resize(width, height);
   return frame;
 }
 
@@ -150,10 +218,7 @@ PImage processFrame(PImage frame) {
 //=====================================================================================
 
 void sendFrameToLedPanels(PImage frame) {
-  // Write the frame to panels
-  //if (framerate == 0) framerate = m.getSourceFrameRate();
-  framerate = 30.0; // TODO, how to read the frame rate???
-  
+  // Write the frame to panels  
   for (int i=0; i < numberOfPortsInUse; i++) {    
     // copy a portion of the movie's image to the LED image
     int xoffset = percentage(frame.width, ledArea[i].x);
@@ -167,7 +232,7 @@ void sendFrameToLedPanels(PImage frame) {
     image2data(ledImage[i], ledData, ledLayout[i]);
     if (i == 0) {
       ledData[0] = '*';  // first Teensy is the frame sync master
-      int usec = (int)((1000000.0 / framerate) * 0.75);
+      int usec = (int)((1000000.0 / TargetFrameRate) * 0.75);
       ledData[1] = (byte)(usec);   // request the frame sync pulse
       ledData[2] = (byte)(usec >> 8); // at 75% of the frame time
     } else {
@@ -274,46 +339,18 @@ void serialConfigure(String portName) {
   numberOfPortsInUse++;
 }
 
-// Called to render the screen - on this computer, not the LED panel.
-// If using a capture, rather than movie, this is where we read the new frame.
-void draw() {
-  // Show the frame on screen
-  if (lastRenderFrame != null) {
-    image(lastRenderFrame, 0, 80);
-  } else {
-    print ("Movie not ready yet");
-    return;
-  }
-  
-  // then try to show what was most recently sent to the LEDs
-  // by displaying all the images for each port.
-  for (int i = 0; i < numberOfPortsInUse; i++) {
-    // compute the intended size of the entire LED array
-    int xsize = percentageInverse(ledImage[i].width, ledArea[i].width);
-    int ysize = percentageInverse(ledImage[i].height, ledArea[i].height);
-    
-    // computer this image's position within it
-    int xloc =  percentage(xsize, ledArea[i].x);
-    int yloc =  percentage(ysize, ledArea[i].y);
-    
-    // show what should appear on the LEDs
-    image(ledImage[i], 240 - xsize / 2 + xloc, 10 + yloc);
-  } 
-}
-
 // respond to mouse clicks as pause/play
-boolean isPlaying = true;
-void mousePressed() {
-  if (movieStream == null) return;
-  
-  if (isPlaying) {
-    movieStream.pause();
-    isPlaying = false;
-  } else {
-    movieStream.play();
-    isPlaying = true;
-  }
-}
+//boolean isPlaying = true;
+//void mousePressed() {
+//  if (movieStream == null) return;
+//  if (isPlaying) {
+//    movieStream.pause();
+//    isPlaying = false;
+//  } else {
+//    movieStream.play();
+//    isPlaying = true;
+//  }
+//}
 
 // scale a number by a percentage, from 0 to 100
 int percentage(int num, int percent) {
