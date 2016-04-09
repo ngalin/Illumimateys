@@ -184,10 +184,17 @@ void captureEvent(Capture capture) {
 PImage processFrame(PImage frame) {
   frame = centerCrop(frame, WidthInPixels, HeightInPixels);
   opencv.loadImage(frame);
-  opencv.findCannyEdges(20,75);
+  //opencv.gray();
+  opencv.useGray();
+  opencv.threshold((int)(255 * 0.7));
+
+  //int thresholdBlockSize = 16; int thresholdConstant = 1;
+  //opencv.adaptiveThreshold(thresholdBlockSize+1, thresholdConstant);
+ 
+  //opencv.findCannyEdges(20,75);
   
-  return opencv.getSnapshot();
-  //return frame;
+  PImage newFrame = opencv.getSnapshot();
+  return newFrame;
 }
 
 // Center-crops the largest area possible from frame and resizes
