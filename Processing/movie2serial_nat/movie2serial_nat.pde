@@ -25,6 +25,7 @@
 // Imports
 //=====================================================================================
 
+import blobDetection.*;
 import gab.opencv.*;
 import processing.video.*;
 import processing.video.Movie;
@@ -57,6 +58,7 @@ Capture processingStream;
 
 // Processing
 OpenCV opencv;
+BlobDetection blobDetector;
 PImage lastRenderFrame;
 ArrayList<Contour> contours;
 
@@ -155,6 +157,10 @@ void initialiseVideoStream() {
 void initialiseProcessingPipeline() {
   //if (processingStream == null) return;
   opencv = new OpenCV(this, WidthInPixels, HeightInPixels);
+  blobDetector = new BlobDetection(WidthInPixels, HeightInPixels);
+  //BlobDetection.setConstants(5, 20, 60);
+  blobDetector.setThreshold(0.5);
+  blobDetector.setPosDiscrimination(true); // find highlights, not lowlights
 }
 
 // Processing methods
@@ -191,10 +197,10 @@ PImage processFrame(PImage frame) {
   //int thresholdBlockSize = 16; int thresholdConstant = 1;
   //opencv.adaptiveThreshold(thresholdBlockSize+1, thresholdConstant);
  
-  //opencv.findCannyEdges(20,75);
-  
-  PImage newFrame = opencv.getSnapshot();
-  return newFrame;
+  //opencv.findCannyEdges(20,75);  
+  PImage snapshot = opencv.getSnapshot();
+  //computeBlobs(snapshot);
+  return snapshot;
 }
 
 // Center-crops the largest area possible from frame and resizes
@@ -219,6 +225,27 @@ PImage centerCrop(PImage frame, int width, int height) {
   frame = frame.get(cropX, cropY, cropWidth, cropHeight);
   frame.resize(width, height);
   return frame;
+}
+
+// Draws blobs into the snapshot
+void computeBlobs(PImage snapshot) {
+  blobDetector.computeBlobs(snapshot.pixels);
+  println("Blobs:", blobDetector.getBlobNb());
+  color hilite = #ff0000;
+  for (int i = 0; i < blobDetector.getBlobNb(); ++i) {
+    Blob b = blobDetector.getBlob(i);
+    //println("blob at", b.x, b.y); 
+    int cx = (int)(b.x * snapshot.width);
+    int cy = (int)(b.y * snapshot.height);
+    int w = (int)(b.w * snapshot.width);
+    int h = (int)(b.h * snapshot.height);
+    for (int x = cx - (w/2); x < cx + (w/2); ++x) {
+      snapshot.set(x, cy, hilite);
+    }
+    for (int y = cy - (h/2); y < cy + (h/2); ++y) {
+      snapshot.set(cx, y, hilite);
+    }
+  }
 }
 
 // Processing methods
