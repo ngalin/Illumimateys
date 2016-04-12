@@ -6,7 +6,7 @@ final float THRESHOLD = 0.7;
 // Erosion/dilation sequence. Positive for dilation, negative for erosion.
 final int[] EROSION_DILATION = {-2, 1};
 
-PImage processFrame(PImage frame) {
+PImage processFrame(PImage frame, boolean flip) {
   frame = centerCrop(frame, WidthInPixels, HeightInPixels);
   opencv.loadImage(frame);
   //opencv.gray();
@@ -14,7 +14,8 @@ PImage processFrame(PImage frame) {
   
   thresholdImage();
 
-  //opencv.findCannyEdges(20,75);  
+  //opencv.findCannyEdges(20,75);
+  if (flip) { opencv.flip(OpenCV.HORIZONTAL); }
   PImage snapshot = opencv.getSnapshot();
   //computeBlobs(snapshot);
   return snapshot;

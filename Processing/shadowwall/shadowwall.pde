@@ -168,7 +168,7 @@ void initialiseProcessingPipeline() {
 void movieEvent(Movie movieFrame) {
   int m = millis();
   movieFrame.read();
-  lastRenderFrame = processFrame(movieFrame);
+  lastRenderFrame = processFrame(movieFrame, false);
   sendFrameToLedPanels(lastRenderFrame);
   if (frameCount % TargetFrameRate == 0) {
     println("movieEvent took", (millis() - m), "ms");
@@ -178,7 +178,7 @@ void movieEvent(Movie movieFrame) {
 void captureEvent(Capture capture) {
   int m = millis();
   capture.read();
-  lastRenderFrame = processFrame(capture);
+  lastRenderFrame = processFrame(capture, true);
   sendFrameToLedPanels(lastRenderFrame);
   if (frameCount % TargetFrameRate == 0) {
     println("captureEvent took", (millis() - m), "ms");
