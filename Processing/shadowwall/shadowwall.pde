@@ -40,8 +40,9 @@ int CameraHeight = 720;
 int TargetFrameRate = 30;
 
 // The panel is 180w x 120h, i.e. 3:2. Using double resolution for processing/display.
-int WidthInPixels = 360;
-int HeightInPixels = 240;
+int ResolutionMultiple = 1;
+int WidthInPixels = 180 * ResolutionMultiple;
+int HeightInPixels = 120 * ResolutionMultiple;
 float PanelAspect = WidthInPixels / (float)HeightInPixels;
 
 // Must be an absolute path. If this file can't be found, will open a capture instead.
@@ -78,8 +79,9 @@ int errorCount = 0;
 //=====================================================================================
 
 void settings() {
-  // Create debug window to display the video stream.
-  size(WidthInPixels, HeightInPixels);
+  // Create window to display the video stream.
+  // Double height for a debug display below the main frame.
+  size(WidthInPixels, HeightInPixels * 2);
 }
 
 void setup() {
@@ -101,7 +103,19 @@ void draw() {
     return;
   }
   
-  // then try to show what was most recently sent to the LEDs
+  // Copy the frame from the display window to send to panels.
+  PImage frame = get(0, 0, WidthInPixels, HeightInPixels);
+  sendFrameToLedPanels(frame);
+
+  drawPanelData();
+
+  if (frameCount % TargetFrameRate == 0) {
+    println("Frame rate:", frameRate);
+  }
+}
+
+void drawPanelData() {
+  // then display what was most recently sent to the LEDs
   // by displaying all the images for each port.
   for (int i = 0; i < numberOfPortsInUse; i++) {
     // compute the intended size of the entire LED array
@@ -112,12 +126,8 @@ void draw() {
     int xloc =  percentage(xsize, ledArea[i].x);
     int yloc =  percentage(ysize, ledArea[i].y);
     
-    // show what should appear on the LEDs
-    image(ledImage[i], 240 - xsize / 2 + xloc, 10 + yloc);
-  }
-  
-  if (frameCount % TargetFrameRate == 0) {
-    println("Frame rate:", frameRate);
+    // show what should appear on the LEDs (this layout is probably wrong)
+    image(ledImage[i], WidthInPixels - xsize / 2 + xloc, HeightInPixels + yloc);
   }
 }
 
@@ -169,7 +179,6 @@ void movieEvent(Movie movieFrame) {
   int m = millis();
   movieFrame.read();
   lastRenderFrame = processFrame(movieFrame, false);
-  sendFrameToLedPanels(lastRenderFrame);
   if (frameCount % TargetFrameRate == 0) {
     println("movieEvent took", (millis() - m), "ms");
   }
@@ -179,7 +188,6 @@ void captureEvent(Capture capture) {
   int m = millis();
   capture.read();
   lastRenderFrame = processFrame(capture, true);
-  sendFrameToLedPanels(lastRenderFrame);
   if (frameCount % TargetFrameRate == 0) {
     println("captureEvent took", (millis() - m), "ms");
   }
