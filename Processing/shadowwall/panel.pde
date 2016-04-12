@@ -144,9 +144,13 @@ void serialConfigure(String portName) {
   }
   // only store the info and increase numPorts if Teensy responds properly
   ledImage[numberOfPortsInUse] = new PImage(Integer.parseInt(param[0]), Integer.parseInt(param[1]), RGB);
+  // Note: rows and cols are according to the teensy, which is configured to be mounted rotated π/2
+  println("Panel", numberOfPortsInUse, "cols", param[0], "rows", param[1]);
   ledArea[numberOfPortsInUse] = new Rectangle(Integer.parseInt(param[5]), Integer.parseInt(param[6]),
                      Integer.parseInt(param[7]), Integer.parseInt(param[8]));
+  println("xoff", param[5], "yoff", param[6], "width%", param[7], "height%", param[8]);
   ledLayout[numberOfPortsInUse] = (Integer.parseInt(param[5]) == 0);
+  println("layout", param[5]);
   numberOfPortsInUse++;
 }
 
