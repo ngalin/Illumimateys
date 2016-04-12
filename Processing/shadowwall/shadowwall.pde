@@ -60,7 +60,6 @@ Capture processingStream;
 OpenCV opencv;
 BlobDetection blobDetector;
 PImage lastRenderFrame;
-ArrayList<Contour> contours;
 
 // LED panels
 int MaximumNumberOfPorts = 24;

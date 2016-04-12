@@ -1,20 +1,40 @@
 // Image processing methods
 //=====================================================================================
 
+final float THRESHOLD = 0.7;
+
+// Erosion/dilation sequence. Positive for dilation, negative for erosion.
+final int[] EROSION_DILATION = {-2, 1};
+
 PImage processFrame(PImage frame) {
   frame = centerCrop(frame, WidthInPixels, HeightInPixels);
   opencv.loadImage(frame);
   //opencv.gray();
   opencv.useGray();
-  opencv.threshold((int)(255 * 0.7));
+  
+  thresholdImage();
 
-  //int thresholdBlockSize = 16; int thresholdConstant = 1;
-  //opencv.adaptiveThreshold(thresholdBlockSize+1, thresholdConstant);
- 
   //opencv.findCannyEdges(20,75);  
   PImage snapshot = opencv.getSnapshot();
   //computeBlobs(snapshot);
   return snapshot;
+}
+
+// Thresholds an image
+void thresholdImage() {
+  //int thresholdBlockSize = 16; int thresholdConstant = 1;
+  //opencv.adaptiveThreshold(thresholdBlockSize+1, thresholdConstant);
+   
+  opencv.threshold((int)(255 * THRESHOLD));
+  
+  // Erode/dilate to remove noise
+  for (int ed : EROSION_DILATION) {
+    if (ed > 0) {
+      for (int i = 0; i < ed; ++i) { opencv.dilate(); }
+    } else  if (ed < 0) {
+      for (int i = 0; i < -ed; ++i) { opencv.erode(); }
+    }
+  }
 }
 
 // Center-crops the largest area possible from frame and resizes
