@@ -139,6 +139,11 @@ void initialiseSerialPorts() {
   //serialConfigure("/dev/ttyACM0");  // change these to your port names
   //serialConfigure("/dev/ttyACM1");
   //serialConfigure("/dev/tty.usbmodem1350351");
+  for (String port : list) {
+    if (port.startsWith("/dev/tty.usbmodem")) {
+      serialConfigure(port);
+    }
+  }
   if (errorCount > 0) exit();
 }
 
