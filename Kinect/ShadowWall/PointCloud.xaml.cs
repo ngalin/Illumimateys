@@ -26,11 +26,13 @@ namespace ShadowWall
 		{
 			InitializeComponent();
 
-			this.Loaded += PointCloud_Loaded;
-			this.Closed += PointCloud_Closed;
-			this.KeyDown += PointCloud_KeyDown;
-			this.MouseWheel += PointCloud_MouseWheel;
+			Loaded += PointCloud_Loaded;
+			Closed += PointCloud_Closed;
+			KeyDown += PointCloud_KeyDown;
+			MouseWheel += PointCloud_MouseWheel;
 
+			//pointCloudWriter = new HttpPointCloudWriter();
+			pointCloudWriter = new ImagePointCloudWriter(DepthImage);
 			var sensor = KinectSensor.GetDefault();
 			sensor.Open();
 
@@ -51,6 +53,7 @@ namespace ShadowWall
 		void PointCloud_Closed(object sender, EventArgs e)
 		{
 			KinectSensor.GetDefault().Close();
+			pointCloudWriter.Dispose();
 		}
 
 		void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
@@ -84,7 +87,7 @@ namespace ShadowWall
 					}
 
 					//DrawTriangleCloud(newCloud);
-					DrawDepthCloud(newCloud, width, height);
+					pointCloudWriter.WritePointCloudAsync(newCloud, width, height).Wait();
 
 					lock (currentCloudLock)
 					{
@@ -132,28 +135,6 @@ namespace ShadowWall
 					DrawPoint(Mesh, (int)point.X, (int)point.Y, (int)point.Z, (byte)point.R, (byte)point.G, (byte)point.B);
 				}
 			}
-		}
-
-		void DrawDepthCloud(IEnumerable<PointFrame> cloud, int width, int height)
-		{
-			var byteCloud = ConvertToByteArray(cloud);
-			DepthImage.Source = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgr32, BitmapPalettes.WebPalette, byteCloud, width * PixelFormats.Bgr32.BitsPerPixel / 8);
-		}
-
-		private byte[] ConvertToByteArray(IEnumerable<PointFrame> cloud)
-		{
-			var bytes = new byte[cloud.Count() * (PixelFormats.Bgr32.BitsPerPixel / 8)];
-
-			var index = 0;
-			foreach (var point in cloud)
-			{
-				bytes[index++] = (byte)point.B; // Blue
-				bytes[index++] = (byte)point.G; // Green
-				bytes[index++] = (byte)point.B; // Red
-				bytes[index++] = 0; // Alpha
-			}
-
-			return bytes;
 		}
 
 		void snapshotButton_Click(object sender, EventArgs e)
@@ -308,6 +289,7 @@ namespace ShadowWall
 
 		#endregion
 
+		readonly IPointCloudWriter pointCloudWriter;
 		IEnumerable<IPointCloudFilter> filters;
 	}
 }
