@@ -31,8 +31,9 @@ namespace ShadowWall
 			KeyDown += PointCloud_KeyDown;
 			MouseWheel += PointCloud_MouseWheel;
 
-			//pointCloudWriter = new HttpPointCloudWriter();
-			pointCloudWriter = new ImagePointCloudWriter(DepthImage);
+			//pointCloudWriter = new HttpPointCloudWriter(); // This will transmit the processed point cloud over HTTP
+			//pointCloudWriter = new MeshGeometryPointCloudWriter(Mesh); // This will print the processed point cloud on the 3D mesh
+			pointCloudWriter = new ImagePointCloudWriter(DepthImage); // This will print the processed point cloud in the Depth image control
 			var sensor = KinectSensor.GetDefault();
 			sensor.Open();
 
@@ -75,7 +76,7 @@ namespace ShadowWall
 
 					for (int i = 0; i < depths.Length; ++i)
 					{
-						depths[i] = depths[i] > (this.WallBreadth * 10) ? default(ushort) : depths[i];
+						depths[i] = depths[i] > (WallBreadth * 10) ? default(ushort) : depths[i];
 					}
 
 					Clear(Mesh);
@@ -124,17 +125,6 @@ namespace ShadowWall
 			}
 
 			return points;
-		}
-
-		void DrawTriangleCloud(IEnumerable<PointFrame> cloud)
-		{
-			foreach (var point in cloud)
-			{
-				if (point.Z > 0)
-				{
-					DrawPoint(Mesh, (int)point.X, (int)point.Y, (int)point.Z, (byte)point.R, (byte)point.G, (byte)point.B);
-				}
-			}
 		}
 
 		void snapshotButton_Click(object sender, EventArgs e)
@@ -219,20 +209,6 @@ namespace ShadowWall
 			{
 				Camera.Position = new Point3D(Camera.Position.X - 50, Camera.Position.Y + 50, Camera.Position.Z + 50);
 			}
-		}
-
-		void DrawPoint(MeshGeometry3D mesh, int x, int y, int z, byte r, byte g, byte b)
-		{
-			var count = mesh.Positions.Count;
-			var color = new Color() { A = 0, R = r, G = g, B = b };
-
-			mesh.Positions.Add(new Point3D(x - 0.5, y - 0.5, z + 0.5));
-			mesh.Positions.Add(new Point3D(x + 0.5, y + 0.5, z + 0.5));
-			mesh.Positions.Add(new Point3D(x - 0.5, y + 0.5, z + 0.5));
-
-			mesh.TriangleIndices.Add(0 + count);
-			mesh.TriangleIndices.Add(1 + count);
-			mesh.TriangleIndices.Add(2 + count);
 		}
 
 		void Clear(MeshGeometry3D mesh)

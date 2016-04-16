@@ -70,6 +70,7 @@
     <Compile Include="PointCloudWriter\HttpPointCloudWriter.cs" />
     <Compile Include="PointCloudWriter\ImagePointCloudWriter.cs" />
     <Compile Include="PointCloudWriter\IPointCloudWriter.cs" />
+    <Compile Include="PointCloudWriter\MeshGeometryPointCloudWriter.cs" />
     <Compile Include="Recording\PointCloud.xaml.cs">
       <DependentUpon>PointCloud.xaml</DependentUpon>
     </Compile>
