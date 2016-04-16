@@ -86,8 +86,7 @@ namespace ShadowWall
 					{
 						filter.Apply(newCloud);
 					}
-
-					//DrawTriangleCloud(newCloud);
+					
 					pointCloudWriter.WritePointCloudAsync(newCloud, width, height).Wait();
 
 					lock (currentCloudLock)
