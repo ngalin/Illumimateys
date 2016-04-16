@@ -14,5 +14,10 @@ namespace ShadowWall
 		public int R { get; set; }
 		public int G { get; set; }
 		public int B { get; set; }
+
+		public override string ToString()
+		{
+			return string.Format("{0},{1},{2},{3},{4},{5},{6}", X, Y, Z, R, G, B);
+		}
 	}
 }

@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ShadowWall
 {
-	public interface IPointCloudWriter
+	public interface IPointCloudWriter : IDisposable
 	{
-		void WritePointCloud(IEnumerable<PointFrame> pointCloud, int width, int height);
+		Task WritePointCloudAsync(IEnumerable<PointFrame> pointCloud, int width, int height);
 	}
 }
