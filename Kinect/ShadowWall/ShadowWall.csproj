@@ -67,6 +67,8 @@
     <Compile Include="Depth.xaml.cs">
       <DependentUpon>Depth.xaml</DependentUpon>
     </Compile>
+    <Compile Include="PointCloudWriter\HttpPointCloudWriter.cs" />
+    <Compile Include="PointCloudWriter\IPointCloudWriter.cs" />
     <Compile Include="Recording\PointCloud.xaml.cs">
       <DependentUpon>PointCloud.xaml</DependentUpon>
     </Compile>
