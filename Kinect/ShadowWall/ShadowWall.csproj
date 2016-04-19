@@ -71,6 +71,8 @@
     <Compile Include="PointCloudWriter\ImagePointCloudWriter.cs" />
     <Compile Include="PointCloudWriter\IPointCloudWriter.cs" />
     <Compile Include="PointCloudWriter\MeshGeometryPointCloudWriter.cs" />
+    <Compile Include="PointCloudWriter\PointCloudConverter.cs" />
+    <Compile Include="PointCloudWriter\SocketCloudWriter.cs" />
     <Compile Include="Recording\PointCloud.xaml.cs">
       <DependentUpon>PointCloud.xaml</DependentUpon>
     </Compile>

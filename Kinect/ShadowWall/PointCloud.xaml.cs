@@ -33,7 +33,8 @@ namespace ShadowWall
 
 			//pointCloudWriter = new HttpPointCloudWriter(); // This will transmit the processed point cloud over HTTP
 			//pointCloudWriter = new MeshGeometryPointCloudWriter(Mesh); // This will print the processed point cloud on the 3D mesh
-			pointCloudWriter = new ImagePointCloudWriter(DepthImage); // This will print the processed point cloud in the Depth image control
+			//pointCloudWriter = new ImagePointCloudWriter(DepthImage); // This will print the processed point cloud in the Depth image control
+			pointCloudWriter = new SocketCloudWriter();
 			var sensor = KinectSensor.GetDefault();
 			sensor.Open();
 
