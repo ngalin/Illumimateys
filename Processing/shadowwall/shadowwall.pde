@@ -110,10 +110,14 @@ void draw() {
   Client client = server.available();
   byte[] clientMessage;
   if (client != null) {
-    PImage image = getAsImage(client.readBytes());
+    byte[] imageBytes = client.readBytes();
+    if(imageBytes != null)
+    {
+      PImage image = getAsImage(imageBytes);
     
-    if(image != null) {
-     lastRenderFrame = image; 
+      if(image != null) {
+       lastRenderFrame = image; 
+      }
     }
   }
 
@@ -183,7 +187,7 @@ void initialiseVideoStream() {
     movieStream = new Movie(this, MovieFileName);
     movieStream.loop();
     return;
-  } else
+  } else if(false)
   {
     print("Can't find " + MovieFileName);
     // Note that the parameters to capture must be compatible with the camera; not all parameters are
@@ -209,7 +213,7 @@ PImage getAsImage(byte[] bytes) {
   try {
     ByteArrayInputStream bis = new ByteArrayInputStream(bytes); 
     BufferedImage bimg = ImageIO.read(bis); 
-    PImage img=new PImage(bimg.getWidth(), bimg.getHeight(), PConstants.ARGB);
+    PImage img=new PImage(bimg.getWidth(), bimg.getHeight(), PConstants.ARGB); //<>//
     bimg.getRGB(0, 0, img.width, img.height, img.pixels, 0, img.width);
     img.updatePixels();
     return img;
@@ -217,7 +221,7 @@ PImage getAsImage(byte[] bytes) {
   catch(Exception e) {
     System.err.println("Can't create image from buffer");
     e.printStackTrace();
-  }
+  } //<>//
   return null;
 }
 

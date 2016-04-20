@@ -18,7 +18,7 @@ namespace ShadowWall
 
 		public Task WritePointCloudAsync(IEnumerable<PointFrame> pointCloud, int width, int height)
 		{
-			var byteCloud = pointCloud.ConvertToByteArray();
+			var byteCloud = pointCloud.ConvertToByteArray(width, height);
 			imageControl.Source = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgr32, BitmapPalettes.WebPalette, byteCloud, width * PixelFormats.Bgr32.BitsPerPixel / 8); ;
 			return Task.CompletedTask;
 		}
