@@ -40,6 +40,7 @@ import processing.net.*;
 // Constants
 //=====================================================================================
 // Macbook Pro ix 1280x1024. Set these to match camera's native resolution.
+boolean camEnabled = false;
 int CameraWidth = 1280;
 int CameraHeight = 720;
 int TargetFrameRate = 30;
@@ -111,6 +112,7 @@ void draw() {
   byte[] clientMessage;
   if (client != null) {
     byte[] imageBytes = client.readBytes();
+    client.write(new byte[4]);
     if(imageBytes != null)
     {
       PImage image = getAsImage(imageBytes);
@@ -187,7 +189,7 @@ void initialiseVideoStream() {
     movieStream = new Movie(this, MovieFileName);
     movieStream.loop();
     return;
-  } else if(false)
+  } else if(camEnabled)
   {
     print("Can't find " + MovieFileName);
     // Note that the parameters to capture must be compatible with the camera; not all parameters are
@@ -211,17 +213,17 @@ void initialiseProcessingPipeline() {
 
 PImage getAsImage(byte[] bytes) {
   try {
-    ByteArrayInputStream bis = new ByteArrayInputStream(bytes); 
+    ByteArrayInputStream bis = new ByteArrayInputStream(bytes);  //<>//
     BufferedImage bimg = ImageIO.read(bis); 
-    PImage img=new PImage(bimg.getWidth(), bimg.getHeight(), PConstants.ARGB); //<>//
+    PImage img=new PImage(bimg.getWidth(), bimg.getHeight(), PConstants.ARGB);
     bimg.getRGB(0, 0, img.width, img.height, img.pixels, 0, img.width);
     img.updatePixels();
     return img;
   }
   catch(Exception e) {
-    System.err.println("Can't create image from buffer");
+    System.err.println("Can't create image from buffer"); //<>//
     e.printStackTrace();
-  } //<>//
+  }
   return null;
 }
 
