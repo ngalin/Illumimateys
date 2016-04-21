@@ -21,11 +21,10 @@ namespace ShadowWall
 			{
 				bytes[index++] = (byte)point.B; // Blue
 				bytes[index++] = (byte)point.G; // Green
-				bytes[index++] = (byte)point.B; // Red
-//				bytes[index++] = 0; // Alpha
+				bytes[index++] = (byte)point.R; // Red
 			}
 
-			var source = BitmapSource.Create(width, height, 96, 96, PixelFormats.Rgb24, BitmapPalettes.Gray256, bytes, width * PixelFormats.Rgb24.BitsPerPixel / 8);
+			var source = BitmapSource.Create(width, height, 96, 96, PixelFormats.Rgb24, BitmapPalettes.Gray16, bytes, width * PixelFormats.Rgb24.BitsPerPixel / 8);
 			var encoder = new GifBitmapEncoder();
 
 			using (var stream = new MemoryStream())

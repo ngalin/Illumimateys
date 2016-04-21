@@ -86,8 +86,6 @@ int errorCount = 0;
 
 // Web server
 Server server;
-boolean noClient = true;
-
 
 // Setup methods
 //=====================================================================================
@@ -113,32 +111,29 @@ Client lastClient;
 // Called to render the screen - on this computer, not the LED panel.
 void draw() {
   Client client = server.available();
-  
-  if (client != null) {
+
+  if (client != null && client.available() > 0) {
     byte[] imageBytes = client.readBytes();
-    
-   if(imageBytes != null)
+
+    if (imageBytes != null)
     {
-      if(message == null)
-       {
-         message = imageBytes; 
-         lastClient = client;
-       }
-    
-    else if(client == lastClient)
+      if (message == null)
       {
-        println("boop");
+        message = imageBytes; 
+        lastClient = client;
+      } else if (client == lastClient)
+      {
         message = mergeByteArray(message, imageBytes);
-      }
+      } 
       else
       {
         PImage image = getAsImage(message);
-  
-        if(image != null) {
-          lastRenderFrame = image; 
+
+        if (image != null) {
+          lastRenderFrame = image;
         }
         message = imageBytes;
-        lastClient = client
+        lastClient = client;
       }
     }
   }
@@ -209,24 +204,24 @@ void initialiseVideoStream() {
     movieStream = new Movie(this, MovieFileName);
     movieStream.loop();
     return;
-  } else if(camEnabled)
+  } else if (camEnabled)
   {
     print("Can't find " + MovieFileName);
     // Note that the parameters to capture must be compatible with the camera; not all parameters are
-    // accepted and a mismatch distorts the video. //<>//
+    // accepted and a mismatch distorts the video.
     processingStream = new Capture(this, CameraWidth, CameraHeight, TargetFrameRate);
     processingStream.start();
   }
 }
-
+ //<>//
 void initialiseServer() {
   server = new Server(this, ServerPort);
-} //<>//
+}
 
 void initialiseProcessingPipeline() {
   opencv = new OpenCV(this, WidthInPixels, HeightInPixels);
   blobDetector = new BlobDetection(WidthInPixels, HeightInPixels);
-  //BlobDetection.setConstants(5, 20, 60);
+  //BlobDetection.setConstants(5, 20, 60); //<>//
   blobDetector.setThreshold(0.5);
   blobDetector.setPosDiscrimination(true); // find highlights, not lowlights
 }
@@ -241,8 +236,8 @@ PImage getAsImage(byte[] bytes) {
     return img;
   }
   catch(Exception e) {
-  //  System.err.println("Can't create image from buffer");
- //   e.printStackTrace();
+    System.err.println("Can't create image from buffer");
+    //   e.printStackTrace();
   }
   return null;
 }
@@ -271,14 +266,6 @@ void captureEvent(Capture capture) {
 
 void serverEvent(Server someServer, Client someClient) {
   println("Client conected " + someClient.ip());
-  noClient = false;
-}
-
-public static int toInt(byte[] b) {
-  return (b[0] << 24)
-  + ((b[1] & 0xFF) << 16)
-  + ((b[2] & 0xFF) << 8)
-  + (b[3] & 0xFF);
 }
 
 public byte[] mergeByteArray(byte[] a, byte[] b)
