@@ -34,6 +34,7 @@ import processing.core.*;
 import java.awt.Rectangle;
 import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
+import java.io.StringBufferInputStream;
 import java.awt.image.BufferedImage;
 import processing.net.*;
 
@@ -46,7 +47,7 @@ int CameraHeight = 720;
 int TargetFrameRate = 30;
 
 // The panel is 180w x 120h, i.e. 3:2. Using double resolution for processing/display.
-int ResolutionMultiple = 1;
+int ResolutionMultiple = 4;
 int WidthInPixels = 180 * ResolutionMultiple;
 int HeightInPixels = 120 * ResolutionMultiple;
 float PanelAspect = WidthInPixels / (float)HeightInPixels;
@@ -106,19 +107,38 @@ void setup() {
   initialiseProcessingPipeline();
 }
 
+byte[] message;
+Client lastClient;
+
 // Called to render the screen - on this computer, not the LED panel.
 void draw() {
   Client client = server.available();
-  byte[] clientMessage;
+  
   if (client != null) {
     byte[] imageBytes = client.readBytes();
-    client.write(new byte[4]);
-    if(imageBytes != null)
-    {
-      PImage image = getAsImage(imageBytes);
     
-      if(image != null) {
-       lastRenderFrame = image; 
+   if(imageBytes != null)
+    {
+      if(message == null)
+       {
+         message = imageBytes; 
+         lastClient = client;
+       }
+    
+    else if(client == lastClient)
+      {
+        println("boop");
+        message = mergeByteArray(message, imageBytes);
+      }
+      else
+      {
+        PImage image = getAsImage(message);
+  
+        if(image != null) {
+          lastRenderFrame = image; 
+        }
+        message = imageBytes;
+        lastClient = client
       }
     }
   }
@@ -193,7 +213,7 @@ void initialiseVideoStream() {
   {
     print("Can't find " + MovieFileName);
     // Note that the parameters to capture must be compatible with the camera; not all parameters are
-    // accepted and a mismatch distorts the video.
+    // accepted and a mismatch distorts the video. //<>//
     processingStream = new Capture(this, CameraWidth, CameraHeight, TargetFrameRate);
     processingStream.start();
   }
@@ -201,7 +221,7 @@ void initialiseVideoStream() {
 
 void initialiseServer() {
   server = new Server(this, ServerPort);
-}
+} //<>//
 
 void initialiseProcessingPipeline() {
   opencv = new OpenCV(this, WidthInPixels, HeightInPixels);
@@ -213,7 +233,7 @@ void initialiseProcessingPipeline() {
 
 PImage getAsImage(byte[] bytes) {
   try {
-    ByteArrayInputStream bis = new ByteArrayInputStream(bytes);  //<>//
+    ByteArrayInputStream bis = new ByteArrayInputStream(bytes); 
     BufferedImage bimg = ImageIO.read(bis); 
     PImage img=new PImage(bimg.getWidth(), bimg.getHeight(), PConstants.ARGB);
     bimg.getRGB(0, 0, img.width, img.height, img.pixels, 0, img.width);
@@ -221,8 +241,8 @@ PImage getAsImage(byte[] bytes) {
     return img;
   }
   catch(Exception e) {
-    System.err.println("Can't create image from buffer"); //<>//
-    e.printStackTrace();
+  //  System.err.println("Can't create image from buffer");
+ //   e.printStackTrace();
   }
   return null;
 }
@@ -252,6 +272,21 @@ void captureEvent(Capture capture) {
 void serverEvent(Server someServer, Client someClient) {
   println("Client conected " + someClient.ip());
   noClient = false;
+}
+
+public static int toInt(byte[] b) {
+  return (b[0] << 24)
+  + ((b[1] & 0xFF) << 16)
+  + ((b[2] & 0xFF) << 8)
+  + (b[3] & 0xFF);
+}
+
+public byte[] mergeByteArray(byte[] a, byte[] b)
+{
+  byte[] c = new byte[a.length + b.length];
+  System.arraycopy(a, 0, c, 0, a.length);
+  System.arraycopy(b, 0, c, a.length, b.length);
+  return c;
 }
 
 // respond to mouse clicks as pause/play

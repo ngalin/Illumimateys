@@ -24,9 +24,9 @@ namespace ShadowWall
 				}
 				else
 				{
-					currentPoint.R = Math.Max(previousPoint.R - agingFactor, 0);
-					currentPoint.G = Math.Max(previousPoint.G - agingFactor, 0);
-					currentPoint.B = Math.Max(previousPoint.B - agingFactor, 0);
+					currentPoint.R = Math.Max(previousPoint.R - agingFactor, 1);
+					currentPoint.G = Math.Max(previousPoint.G - agingFactor, 1);
+					currentPoint.B = Math.Max(previousPoint.B - agingFactor, 1);
 				}
 
 				previousPoint.R = currentPoint.R;

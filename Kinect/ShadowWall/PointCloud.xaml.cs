@@ -34,7 +34,7 @@ namespace ShadowWall
 			//pointCloudWriter = new HttpPointCloudWriter(); // This will transmit the processed point cloud over HTTP
 			//pointCloudWriter = new MeshGeometryPointCloudWriter(Mesh); // This will print the processed point cloud on the 3D mesh
 			//pointCloudWriter = new ImagePointCloudWriter(DepthImage); // This will print the processed point cloud in the Depth image control
-			pointCloudWriter = new SocketCloudWriter();
+			pointCloudWriter = new SocketCloudWriter(DepthImage);
 			var sensor = KinectSensor.GetDefault();
 			sensor.Open();
 
@@ -60,6 +60,11 @@ namespace ShadowWall
 
 		void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
 		{
+			if(last != null && !last.IsCompleted)
+			{
+				return;
+			}
+
 			using (var frame = e.FrameReference.AcquireFrame())
 			{
 				if (frame != null)
@@ -88,8 +93,8 @@ namespace ShadowWall
 						filter.Apply(newCloud);
 					}
 					
-					pointCloudWriter.WritePointCloudAsync(newCloud, width, height).Wait();
-
+					last = pointCloudWriter.WritePointCloudAsync(newCloud, width, height);
+					last.Wait();
 					lock (currentCloudLock)
 					{
 						CurrentCloud = newCloud;
@@ -98,6 +103,8 @@ namespace ShadowWall
 				}
 			}
 		}
+
+		Task last;
 
 		void RecordDepths(ushort[] depths)
 		{
