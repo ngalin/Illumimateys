@@ -34,7 +34,7 @@ import java.awt.Rectangle;
 
 // Constants
 //=====================================================================================
-// Macbook Pro ix 1280x1024. Set these to match camera's native resolution.
+// Macbook Pro ix 1280x720. Set these to match camera's native resolution.
 int CameraWidth = 1280;
 int CameraHeight = 720;
 int TargetFrameRate = 30;
@@ -99,9 +99,7 @@ void draw() {
   int xPosition = 0, yPosition = 0; 
   if (lastRenderFrame != null) {
     image(lastRenderFrame, xPosition, yPosition);
-  } else {
-    //print ("Movie not ready yet");
-    return;
+    annotateImage();
   }
   
   // Copy the frame from the display window to send to panels.
@@ -137,8 +135,6 @@ void initialiseSerialPorts() {
   delay(20);
   println("Serial Ports:");
   println(join(list, "\n"));
-  //serialConfigure("/dev/ttyACM0");  // change these to your port names
-  //serialConfigure("/dev/ttyACM1");
   //serialConfigure("/dev/tty.usbmodem1350351");
   for (String port : list) {
     if (port.startsWith("/dev/tty.usbmodem")) {
@@ -171,6 +167,9 @@ void initialiseVideoStream() {
 
 void initialiseProcessingPipeline() {
   opencv = new OpenCV(this, WidthInPixels, HeightInPixels);
+  println("Using color?", opencv.getUseColor());
+  //opencv.useGray();
+
   blobDetector = new BlobDetection(WidthInPixels, HeightInPixels);
   //BlobDetection.setConstants(5, 20, 60);
   blobDetector.setThreshold(0.5);
@@ -199,22 +198,9 @@ void captureEvent(Capture capture) {
   }
 }
 
-void stop()
-{
+void stop() {
   for (int i=0; i < numberOfPortsInUse; i++) {
     ledSerial[i].clear();
     ledSerial[i].stop(); 
   }
 }
-// respond to mouse clicks as pause/play
-//boolean isPlaying = true;
-//void mousePressed() {
-//  if (movieStream == null) return;
-//  if (isPlaying) {
-//    movieStream.pause();
-//    isPlaying = false;
-//  } else {
-//    movieStream.play();
-//    isPlaying = true;
-//  }
-//}

@@ -1,24 +1,31 @@
 // Image processing methods
 //=====================================================================================
 
-final float THRESHOLD = 0.7;
+final float THRESHOLD = 0.5;
 
 // Erosion/dilation sequence. Positive for dilation, negative for erosion.
 final int[] EROSION_DILATION = {-2, 1};
 
+/**
+ * Processes the argument image through OpenCV, returning the resulting image.
+ */
 PImage processFrame(PImage frame, boolean flip) {
   frame = centerCrop(frame, WidthInPixels, HeightInPixels);
   opencv.loadImage(frame);
-  //opencv.gray();
-  opencv.useGray();
   
   thresholdImage();
 
   //opencv.findCannyEdges(20,75);
   if (flip) { opencv.flip(OpenCV.HORIZONTAL); }
   PImage snapshot = opencv.getSnapshot();
-  //computeBlobs(snapshot);
   return snapshot;
+}
+
+/**
+ * Annotates the image already drawn to the render buffer in place
+ */
+void annotateImage() {
+  annotateBlobs();
 }
 
 // Thresholds an image
@@ -30,11 +37,11 @@ void thresholdImage() {
   
   // Erode/dilate to remove noise
   for (int ed : EROSION_DILATION) {
-    if (ed > 0) {
-      for (int i = 0; i < ed; ++i) { opencv.dilate(); }
-    } else  if (ed < 0) {
-      for (int i = 0; i < -ed; ++i) { opencv.erode(); }
-    }
+   if (ed > 0) {
+     for (int i = 0; i < ed; ++i) { opencv.dilate(); }
+   } else  if (ed < 0) {
+     for (int i = 0; i < -ed; ++i) { opencv.erode(); }
+   }
   }
 }
 
@@ -62,23 +69,21 @@ PImage centerCrop(PImage frame, int width, int height) {
   return frame;
 }
 
-// Draws blobs into the snapshot
-void computeBlobs(PImage snapshot) {
-  blobDetector.computeBlobs(snapshot.pixels);
+// Computes blobs over and then draws annotations into the frame
+void annotateBlobs() {
+  PImage frame = get(0, 0, WidthInPixels, HeightInPixels);
+  blobDetector.computeBlobs(frame.pixels);
   println("Blobs:", blobDetector.getBlobNb());
   color hilite = #ff0000;
   for (int i = 0; i < blobDetector.getBlobNb(); ++i) {
     Blob b = blobDetector.getBlob(i);
     //println("blob at", b.x, b.y); 
-    int cx = (int)(b.x * snapshot.width);
-    int cy = (int)(b.y * snapshot.height);
-    int w = (int)(b.w * snapshot.width);
-    int h = (int)(b.h * snapshot.height);
-    for (int x = cx - (w/2); x < cx + (w/2); ++x) {
-      snapshot.set(x, cy, hilite);
-    }
-    for (int y = cy - (h/2); y < cy + (h/2); ++y) {
-      snapshot.set(cx, y, hilite);
-    }
+    int cx = (int)(b.x * WidthInPixels);
+    int cy = (int)(b.y * HeightInPixels);
+    int w = (int)(b.w * WidthInPixels);
+    int h = (int)(b.h * HeightInPixels);
+    stroke(hilite);
+    line(cx-w/2, cy, cx+w/2, cy);
+    line(cx, cy-h/2, cx, cy+h/2);
   }
 }
