@@ -48,6 +48,7 @@ float PanelAspect = WidthInPixels / (float)HeightInPixels;
 // Must be an absolute path. If this file can't be found, will open a capture instead.
 //String MovieFileName = "/tmp/shadowwall.avi";
 String MovieFileName = "/Users/srdjankrstic/Programming/PhilipsCircle_10secs.avi";
+//String MovieFileName = "/Users/ngalin/Desktop/TestVivid/PhilipsCircle_10secs.avi";
 //String MovieFileName = "/non-existent_file.avi";
 
 // Variables
@@ -198,6 +199,13 @@ void captureEvent(Capture capture) {
   }
 }
 
+void stop()
+{
+  for (int i=0; i < numberOfPortsInUse; i++) {
+    ledSerial[i].clear();
+    ledSerial[i].stop(); 
+  }
+}
 // respond to mouse clicks as pause/play
 //boolean isPlaying = true;
 //void mousePressed() {
