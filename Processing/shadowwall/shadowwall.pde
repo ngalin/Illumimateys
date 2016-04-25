@@ -39,15 +39,14 @@ int CameraWidth = 1280;
 int CameraHeight = 720;
 int TargetFrameRate = 30;
 
-// The panel is 180w x 120h, i.e. 3:2. Using double resolution for processing/display.
+// The panel is 180w x 120h, i.e. 3:2.
 int ResolutionMultiple = 1;
 int WidthInPixels = 180 * ResolutionMultiple;
 int HeightInPixels = 120 * ResolutionMultiple;
 float PanelAspect = WidthInPixels / (float)HeightInPixels;
 
 // Must be an absolute path. If this file can't be found, will open a capture instead.
-//String MovieFileName = "/tmp/shadowwall.avi";
-String MovieFileName = "/Users/srdjankrstic/Programming/PhilipsCircle_10secs.avi";
+String MovieFileName = "/tmp/shadowwall.avi";
 //String MovieFileName = "/Users/ngalin/Desktop/TestVivid/PhilipsCircle_10secs.avi";
 //String MovieFileName = "/non-existent_file.avi";
 
@@ -89,8 +88,8 @@ void setup() {
   frameRate(TargetFrameRate);
   initialiseSerialPorts();
   initialiseGammaTable();
-  initialiseVideoStream();
   initialiseProcessingPipeline();
+  initialiseVideoStream();
 }
  
 // Called to render the screen - on this computer, not the LED panel.
@@ -99,7 +98,7 @@ void draw() {
   int xPosition = 0, yPosition = 0; 
   if (lastRenderFrame != null) {
     image(lastRenderFrame, xPosition, yPosition);
-    annotateImage();
+    //annotateImage();
   }
   
   // Copy the frame from the display window to send to panels.
@@ -199,6 +198,7 @@ void captureEvent(Capture capture) {
 }
 
 void stop() {
+  println("Stopping");
   for (int i=0; i < numberOfPortsInUse; i++) {
     ledSerial[i].clear();
     ledSerial[i].stop(); 
