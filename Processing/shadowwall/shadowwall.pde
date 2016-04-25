@@ -95,15 +95,26 @@ void setup() {
 // Called to render the screen - on this computer, not the LED panel.
 void draw() {
   // Show the frame on screen
-  int xPosition = 0, yPosition = 0; 
   if (lastRenderFrame != null) {
-    image(lastRenderFrame, xPosition, yPosition);
+    // Rotate and flip the image to match the messed-up orientation of the
+    // panel addressing.
+    pushMatrix();
+    translate(0, WidthInPixels);
+    rotate(-PI/2);
+    scale(1, -1);
+    translate(0, -HeightInPixels);
+    image(lastRenderFrame, 0, 0);
     //annotateImage();
+    popMatrix();
   }
   
   // Copy the frame from the display window to send to panels.
-  PImage frame = get(0, 0, WidthInPixels, HeightInPixels);
+  PImage frame = get(0, 0, HeightInPixels, WidthInPixels); // Inverted axis
   sendFrameToLedPanels(frame);
+
+  // Draw the image again on screen for us to see
+  clear();
+  image(lastRenderFrame, 0, 0);
 
   drawPanelData();
 
@@ -125,7 +136,7 @@ void drawPanelData() {
     int yloc =  percentage(ysize, ledArea[i].y);
     
     // show what should appear on the LEDs (this layout is probably wrong)
-    image(ledImage[i], WidthInPixels - xsize / 2 + xloc, HeightInPixels + yloc);
+    image(ledImage[i], xloc, HeightInPixels + yloc);
   }
 }
 
