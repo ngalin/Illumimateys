@@ -32,11 +32,24 @@ import processing.video.Movie;
 import processing.serial.*;
 import java.awt.Rectangle;
 
+class CaptureParams {
+  CaptureParams(String name, int width, int height) {
+    this.name = name;
+    this.width = width;
+    this.height = height;
+  }
+  public String name;
+  public int width;
+  public int height;
+}
+
 // Constants
 //=====================================================================================
 // Macbook Pro ix 1280x720. Set these to match camera's native resolution.
-int CameraWidth = 1280;
-int CameraHeight = 720;
+CaptureParams MACBOOK = new CaptureParams("FaceTime HD Camera (Built-in)", 1280, 720);
+CaptureParams FISHEYE = new CaptureParams("USB 2.0 Camera", 1920, 1080);
+CaptureParams Camera = FISHEYE;
+
 int TargetFrameRate = 30;
 
 // The panel is 180w x 120h, i.e. 3:2.
@@ -80,8 +93,7 @@ int errorCount = 0;
 
 void settings() {
   // Create window to display the video stream.
-  // Double height for a debug display below the main frame.
-  size(WidthInPixels, HeightInPixels * 2);
+  size(WidthInPixels, HeightInPixels);
 }
 
 void setup() {
@@ -114,7 +126,9 @@ void draw() {
 
   // Draw the image again on screen for us to see
   clear();
-  image(lastRenderFrame, 0, 0);
+  if (lastRenderFrame != null) {
+    image(lastRenderFrame, 0, 0);
+  }
 
   drawPanelData();
 
@@ -168,9 +182,10 @@ void initialiseVideoStream() {
     movieStream.loop();
   } else {
     print("Can't find " + MovieFileName);
+    for (String c : Capture.list()) { println(c); }
     // Note that the parameters to capture must be compatible with the camera; not all parameters are
     // accepted and a mismatch distorts the video.
-    processingStream = new Capture(this, CameraWidth, CameraHeight, TargetFrameRate);
+    processingStream = new Capture(this, Camera.width, Camera.height, Camera.name, TargetFrameRate);
     processingStream.start();
   }
 }

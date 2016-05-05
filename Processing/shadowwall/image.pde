@@ -18,7 +18,8 @@ PImage processFrame(PImage frame, boolean flip) {
   //opencv.findCannyEdges(20,75);
   if (flip) { opencv.flip(OpenCV.HORIZONTAL); }
   PImage snapshot = opencv.getSnapshot();
-  return frame; //snapshot;
+  return frame;
+  //return snapshot;
 }
 
 /**
