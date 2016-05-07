@@ -9,6 +9,7 @@ import glob
 import time
 from MyRectangle import MyRectangle
 import helperFunctions as hp
+from showMovie.imgproc import Pipeline
 
 MAX_NUM_PORTS = 24
 TARGET_FRAME_RATE = 30
@@ -81,6 +82,10 @@ def close_all_ports(num_ports):
         led_serial[i].close()
 
 def send_frame_to_led_panels(frame, num_ports):
+    # Resize to exact dimensions of panels, adding in dummy columns
+    frame = hp.resize(frame, PANEL_WIDTH, PANEL_HEIGHT, DUMMY_COL_INDICES)
+    cv2.imshow("panels", frame)
+
     # Write the frame to panels
     for teensy_idx in range(0, num_ports):
         # copy a portion of the movie's image to the LED image
@@ -134,28 +139,29 @@ def main(argv):
         print "Failed to open capture"
         return
 
+    print "Initialising pipeline"
+    pipeline = Pipeline(CAPTURE_SIZE)
+
     print "Initialising serial ports"
     num_ports = initialise_serial_ports()
     print "Initialised", num_ports, "ports"
 
-    print "Initialising pipeline"
-
     # Open a preview window
     cv2.namedWindow("preview")
+    cv2.namedWindow("panels")
     cv2.namedWindow("debug")
 
     tstart = time.time()
     frameno = 0
     have_frame, frame = cap.read()
     while have_frame:
-        # frame = cv2.imread("/Users/alex/Desktop/shadowwall-test-1.png")
+        # frame = cv2.imread("/Users/alex/Desktop/fish.jpg")
         preview_frame = cv2.resize(frame, PREVIEW_SIZE)
         cv2.imshow("preview", preview_frame)
 
-        # resize frame to exactly be the dimensions of LED panel
-        new_frame = hp.resize(frame, PANEL_WIDTH, PANEL_HEIGHT, DUMMY_COL_INDICES)
-        cv2.imshow("debug", new_frame)
-        send_frame_to_led_panels(new_frame, num_ports)
+        frame = pipeline.process(frame)
+
+        send_frame_to_led_panels(frame, num_ports)
 
         key = cv2.waitKey(1)
         if key == 27:  # exit on ESC
@@ -170,7 +176,7 @@ def main(argv):
         have_frame, frame = cap.read()
 
     cv2.destroyWindow("preview")
-    cv2.destroyWindow("debug")
+    cv2.destroyWindow("panels")
     close_all_ports(num_ports)
 
 
