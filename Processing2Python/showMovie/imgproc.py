@@ -26,6 +26,6 @@ class Pipeline(object):
             img = self.defisher.unwarp(img)
             # cv2.imwrite("defished.jpg", img)
             img = cv2.resize(img, (img.shape[1]/2, img.shape[0]/2))
-            # cv2.imshow("debug", img)
 
+        cv2.imshow("debug", img)
         return img
