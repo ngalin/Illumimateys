@@ -83,48 +83,41 @@
 // VIDEO_HEIGHT is NOT in percentage, but in actual LED pixel count vertically, which is always 120 pixels
 
 //Teensy #1/6 (right most, when looking front-on to screen):
-//#define VIDEO_XOFFSET  0
-//#define VIDEO_YOFFSET  0       
+//#define VIDEO_XOFFSET  152
+//#define VIDEO_YOFFSET  0      
 //#define VIDEO_WIDTH    32
 //#define VIDEO_HEIGHT   120
 
-#define VIDEO_XOFFSET  152
-#define VIDEO_YOFFSET  0      
-#define VIDEO_WIDTH    32
-#define VIDEO_HEIGHT   120
-
-
-
 //Teensy #2/6:
-//#define VIDEO_XOFFSET  32
+//#define VIDEO_XOFFSET  120
 //#define VIDEO_YOFFSET  0       
 //#define VIDEO_WIDTH    32
 //#define VIDEO_HEIGHT   120
 
 //Teensy #3/6:
-//#define VIDEO_XOFFSET  64
+//#define VIDEO_XOFFSET  88
 //#define VIDEO_YOFFSET  0       
 //#define VIDEO_WIDTH    32
 //#define VIDEO_HEIGHT   120
 
 //Teensy #4/6:
-//#define VIDEO_XOFFSET  96
+//#define VIDEO_XOFFSET  56
 //#define VIDEO_YOFFSET  0       
 //#define VIDEO_WIDTH    32
 //#define VIDEO_HEIGHT   120
 
 //Teensy #5/6:
-//#define VIDEO_XOFFSET  128
+//#define VIDEO_XOFFSET  24
 //#define VIDEO_YOFFSET  0       
 //#define VIDEO_WIDTH    32
 //#define VIDEO_HEIGHT   120
 
 //Teensy #6/6: (left most, it's special because it only has 3 strips per channel, unlike the above Teensys)
-//#define LED_HEIGHT 24
-//#define VIDEO_XOFFSET  160
-//#define VIDEO_YOFFSET  0      
-//#define VIDEO_WIDTH    24
-//#define VIDEO_HEIGHT   120
+#define LED_HEIGHT 24
+#define VIDEO_XOFFSET  0
+#define VIDEO_YOFFSET  0      
+#define VIDEO_WIDTH    24
+#define VIDEO_HEIGHT   120
 
 const int ledsPerStrip = LED_WIDTH * LED_HEIGHT / 8;
 
