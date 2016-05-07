@@ -21,8 +21,8 @@ led_layout = []
 
 panel_width_in_pixels = 180
 panel_height_in_pixels = 120
-#idx_dummy_columns = np.array([147, 151, 155, 159])
-idx_dummy_columns = np.array([27, 31, 35, 39])
+idx_dummy_columns = np.array([147, 151, 155, 159])
+
 
 # ask a Teensy board for its LED configuration, and set up the info for it.
 def serial_configure(port_name, port_num):
@@ -37,7 +37,7 @@ def serial_configure(port_name, port_num):
         print 'portName: ', port_name, ' returned null'
         return
 
-    time.sleep(500 / 1000.0)  # sleep for 50ms
+    time.sleep(50 / 1000.0)  # sleep for 50ms
 
     led_serial[port_num].write('?')
 
@@ -57,14 +57,14 @@ def serial_configure(port_name, port_num):
     # only store the info and increase numPorts if Teensy responds properly
     led_image.append(np.zeros((int(params[0]), int(params[1]), 3), np.uint8))
     # Note: rows and cols are according to the teensy, which is configured to be mounted rotated π/2
-    #print 'Panel: ', port_num, ' cols: ', params[0], ' rows: ', params[1]
+    print 'Panel: ', port_num, ' cols: ', params[0], ' rows: ', params[1]
     rect = MyRectangle((int(params[5]), int(params[6])), int(params[7]), int(params[8]))
     led_area.append(rect)
 
-    #print 'xoff: ', params[5], ' yoff: ', params[6], ' width: ', params[7], '%, height: ', params[8], '%'
+    print 'xoff: ', params[5], ' yoff: ', params[6], ' width: ', params[7], '%, height: ', params[8], '%'
 
     led_layout.append(int(params[2]))
-    #print 'laout: ', params[2]
+    print 'laout: ', params[2]
 
 
 def initialise_serial_ports():
@@ -77,7 +77,7 @@ def initialise_serial_ports():
         serial_configure(port, idx)
         total_num_ports += 1
 
-    #print led_serial
+    print led_serial
     return total_num_ports
 
 
@@ -100,7 +100,6 @@ def close_all_ports(num_ports):
 def send_frame_to_led_panels(frame, num_ports):
     # Write the frame to panels
     [height, width, depth] = frame.shape
-
     for teensy_idx in range(0, num_ports):
         # copy a portion of the movie's image to the LED image
         xoffset = led_area[teensy_idx].x
@@ -108,41 +107,38 @@ def send_frame_to_led_panels(frame, num_ports):
         twidth = led_area[teensy_idx].width
         theight = led_area[teensy_idx].height
 
-        # print 'xoffset: ' + str(xoffset)
-        # print 'yoffset: ' + str(yoffset)
-        # print 'width: ' + str(twidth)
-        # print 'height: ' + str(theight)
-        #
-        # print 'start width: ' + str(xoffset) + ' end width: ' + str(xoffset + twidth)
-        # print 'start height: ' + str(yoffset) + ' end height: ' + str(yoffset + theight)
-        #
-        # print frame.shape
+        print 'xoffset: ' + str(xoffset)
+        print 'yoffset: ' + str(yoffset)
+        print 'width: ' + str(twidth)
+        print 'height: ' + str(theight)
+
+        print 'start width: ' + str(xoffset) + ' end width: ' + str(xoffset + twidth)
+        print 'start height: ' + str(yoffset) + ' end height: ' + str(yoffset + theight)
+
+        print frame.shape
 
         # determine what portion of frame to send to given Teensy:
         # led_image[teensy_idx] = np.copy(frame[xoffset:xoffset+theight,yoffset:yoffset+twidth,:])
         led_image[teensy_idx] = np.copy(frame[yoffset:yoffset + theight, xoffset:xoffset + twidth, :])
         # convert the LED image to raw data byte[]
-        #print 'led_image[teensy_idx] ' + str(led_image[teensy_idx].shape)
-        led_data = hp.image_to_data(led_image[teensy_idx], led_layout[teensy_idx])
-
-#        led_data = bytearray(led_image[teensy_idx])
+        print 'led_image[teensy_idx] ' + str(led_image[teensy_idx].shape)
+        led_data = hp.image_to_data(led_image[teensy_idx], led_layout)
 
         # send byte data to Teensys:
-       # if teensy_idx == 0:
-        led_data[0] = '*'  # first Teensy is the frame sync master
-        usec = int((1000000.0 / target_frame_rate) * 0.75)
-        led_data[1] = (usec) & 0xff  # request the frame sync pulse
-        led_data[2] = (usec >> 8) & 0xff  # at 75% of the frame time
-        # else:
-        #     led_data[0] = '%'  # others sync to the master board
-        #     led_data[1] = 0
-        #     led_data[2] = 0
+        if teensy_idx == 0:
+            led_data[0] = '*' # first Teensy is the frame sync master
+            usec = int((1000000.0 / target_frame_rate) * 0.75)
+            led_data[1] = (usec) & 0xff # request the frame sync pulse
+            led_data[2] = (usec >> 8) & 0xff # at 75% of the frame time
+        else:
+            led_data[0] = '%' # others sync to the master board
+            led_data[1] = 0
+            led_data[2] = 0
 
         # and finally send the raw data to the LEDs
-        #print led_serial[teensy_idx]
-        print 'Length LED data: ' + str(len(led_data))
-        led_serial[teensy_idx].write(bytes(led_data))
-
+        print led_serial[teensy_idx]
+        print led_data
+        led_serial[teensy_idx].write(bytearray(led_data))
 
 def main():
     number_of_ports_in_use = initialise_serial_ports()
@@ -153,26 +149,23 @@ def main():
 
     # now capture frames from webcam:
     cv2.namedWindow("preview")
-    #vc = cv2.VideoCapture(0)
-    vc = cv2.VideoCapture("/Users/ngalin/Desktop/TestVivid/shadowwall-test-1.mp4")
+    vc = cv2.VideoCapture(0)
 
     if vc.isOpened():  # try to get the first frame
         rval, frame = vc.read()
     else:
         rval = False
 
-#    print 'Frame shape: ' + str(frame.shape)
+    print 'Frame shape: ' + str(frame.shape)
 
     frame_count = 3
     while rval and frame_count > 0:
-        #frame = cv2.imread('/Users/ngalin/Desktop/TestVivid/testImg.png')
         cv2.imshow("preview", frame)
-
-        #rval, frame = vc.read()
+        rval, frame = vc.read()
         cv2.imwrite('orig_frame.png', frame)
         # resize frame to exactly be the dimensions of LED panel
         new_frame = hp.resize(frame, panel_width_in_pixels, panel_height_in_pixels, idx_dummy_columns)
-        #new_frame = cv2.flip(new_frame, 1)
+        new_frame = cv2.flip(new_frame, 1)
         cv2.imwrite('new_frame.png', new_frame)
 
         send_frame_to_led_panels(new_frame, number_of_ports_in_use)

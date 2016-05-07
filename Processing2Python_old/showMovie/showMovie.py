@@ -5,14 +5,13 @@ vc = cv2.VideoCapture(0)
 
 if vc.isOpened():  # try to get the first frame
     rval, frame = vc.read()
-
-    [width, height, depth] = frame.shape
-    print width
-    print height
-    print depth
-
 else:
     rval = False
+
+[width,height,depth] = frame.shape
+print width
+print height
+print depth
 
 while rval:
     cv2.imshow("preview", frame)

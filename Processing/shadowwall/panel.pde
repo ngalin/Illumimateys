@@ -46,11 +46,12 @@ void sendFrameToLedPanels(PImage frame) {
       int usec = (int)((1000000.0 / TargetFrameRate) * 0.75);
       ledData[1] = (byte)(usec);   // request the frame sync pulse
       ledData[2] = (byte)(usec >> 8); // at 75% of the frame time
-    } else {
-      ledData[0] = '%';  // others sync to the master board
-      ledData[1] = 0;
-      ledData[2] = 0;
-    }
+    } 
+    //else {
+    //  ledData[0] = '%';  // others sync to the master board
+    //  ledData[1] = 0;
+    //  ledData[2] = 0;
+    //}
     // send the raw data to the LEDs  :-)
     ledSerial[i].write(ledData); 
   }

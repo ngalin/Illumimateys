@@ -59,7 +59,10 @@ int HeightInPixels = 120 * ResolutionMultiple;
 float PanelAspect = WidthInPixels / (float)HeightInPixels;
 
 // Must be an absolute path. If this file can't be found, will open a capture instead.
-String MovieFileName = "/tmp/shadowwall.avi";
+//String MovieFileName = "/tmp/shadowwall.avi";
+String MovieFileName = "/Users/ngalin/Desktop/TestVivid/shadowwall-test-1.avi";
+//String MovieFileName = "/Users/ngalin/Desktop/TestVivid/SampleVideo_360x240_1mb.mp4";
+
 //String MovieFileName = "/Users/ngalin/Desktop/TestVivid/PhilipsCircle_10secs.avi";
 //String MovieFileName = "/non-existent_file.avi";
 

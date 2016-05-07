@@ -88,6 +88,13 @@
 //#define VIDEO_WIDTH    32
 //#define VIDEO_HEIGHT   120
 
+#define VIDEO_XOFFSET  152
+#define VIDEO_YOFFSET  0      
+#define VIDEO_WIDTH    32
+#define VIDEO_HEIGHT   120
+
+
+
 //Teensy #2/6:
 //#define VIDEO_XOFFSET  32
 //#define VIDEO_YOFFSET  0       
@@ -112,12 +119,12 @@
 //#define VIDEO_WIDTH    32
 //#define VIDEO_HEIGHT   120
 
-//Teensy #6/6: (right most, it's special because it only has 3 strips per channel, unlike the above Teensys)
-#define LED_HEIGHT 24
-#define VIDEO_XOFFSET  160
-#define VIDEO_YOFFSET  0      
-#define VIDEO_WIDTH    24
-#define VIDEO_HEIGHT   120
+//Teensy #6/6: (left most, it's special because it only has 3 strips per channel, unlike the above Teensys)
+//#define LED_HEIGHT 24
+//#define VIDEO_XOFFSET  160
+//#define VIDEO_YOFFSET  0      
+//#define VIDEO_WIDTH    24
+//#define VIDEO_HEIGHT   120
 
 const int ledsPerStrip = LED_WIDTH * LED_HEIGHT / 8;
 
