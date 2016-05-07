@@ -61,22 +61,16 @@ def serial_configure(port_name, port_num):
     #print 'xoff: ', params[5], ' yoff: ', params[6], ' width: ', params[7], '%, height: ', params[8], '%'
 
     led_layout.append(int(params[2]))
-    #print 'laout: ', params[2]
-
 
 def initialise_serial_ports():
     ports = glob.glob('/dev/tty.usbmodem*')
     print 'Serial Ports: '
     print ports
-    total_num_ports = 0
+    idx = -1
 
     for idx, port in enumerate(ports):
         serial_configure(port, idx)
-        total_num_ports += 1
-
-    #print led_serial
-    return total_num_ports
-
+    return idx + 1
 
 def close_all_ports(num_ports):
     for i in range(0, num_ports):
