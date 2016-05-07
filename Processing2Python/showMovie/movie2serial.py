@@ -8,25 +8,22 @@ import time
 from MyRectangle import MyRectangle
 import helperFunctions as hp
 
-cv2.namedWindow("preview")
-vc = cv2.VideoCapture()
-
-MaximumNumberOfPorts = 24
-target_frame_rate = 30
+MAX_NUM_PORTS = 24
+TARGET_FRAME_RATE = 30
 
 led_serial = []
 led_image = []
 led_area = []
 led_layout = []
 
-panel_width_in_pixels = 180
-panel_height_in_pixels = 120
+PANEL_WIDTH = 180
+PANEL_HEIGHT = 120
 #idx_dummy_columns = np.array([147, 151, 155, 159])
-idx_dummy_columns = np.array([27, 31, 35, 39])
+DUMMY_COL_INDICES = np.array([27, 31, 35, 39])
 
 # ask a Teensy board for its LED configuration, and set up the info for it.
 def serial_configure(port_name, port_num):
-    if port_num >= MaximumNumberOfPorts:
+    if port_num >= MAX_NUM_PORTS:
         print 'Too many serial ports, please increase maxPorts'
         return
 
@@ -130,7 +127,7 @@ def send_frame_to_led_panels(frame, num_ports):
         # send byte data to Teensys:
        # if teensy_idx == 0:
         led_data[0] = '*'  # first Teensy is the frame sync master
-        usec = int((1000000.0 / target_frame_rate) * 0.75)
+        usec = int((1000000.0 / TARGET_FRAME_RATE) * 0.75)
         led_data[1] = (usec) & 0xff  # request the frame sync pulse
         led_data[2] = (usec >> 8) & 0xff  # at 75% of the frame time
         # else:
@@ -145,44 +142,41 @@ def send_frame_to_led_panels(frame, num_ports):
 
 
 def main():
-    number_of_ports_in_use = initialise_serial_ports()
-    print number_of_ports_in_use
+    num_ports = initialise_serial_ports()
+    print "Initialised", num_ports, "ports"
 
     hp.initialise_gamma_table()
-    #    print hp.gamma_table
+
+    # Open a preview window
+    cv2.namedWindow("preview")
+    cv2.namedWindow("debug")
 
     # now capture frames from webcam:
-    cv2.namedWindow("preview")
-    #vc = cv2.VideoCapture(0)
-    vc = cv2.VideoCapture("/Users/ngalin/Desktop/TestVivid/shadowwall-test-1.mp4")
+    # vc = cv2.VideoCapture(0)
+    vc = cv2.VideoCapture("/tmp/shadowwall.mp4")
 
+    have_frame, frame = False, None
     if vc.isOpened():  # try to get the first frame
-        rval, frame = vc.read()
-    else:
-        rval = False
+        have_frame, frame = vc.read()
 
-#    print 'Frame shape: ' + str(frame.shape)
-
-    frame_count = 3
-    while rval and frame_count > 0:
-        #frame = cv2.imread('/Users/ngalin/Desktop/TestVivid/testImg.png')
+    while have_frame:
         cv2.imshow("preview", frame)
 
-        #rval, frame = vc.read()
-        cv2.imwrite('orig_frame.png', frame)
         # resize frame to exactly be the dimensions of LED panel
-        new_frame = hp.resize(frame, panel_width_in_pixels, panel_height_in_pixels, idx_dummy_columns)
+        new_frame = hp.resize(frame, PANEL_WIDTH, PANEL_HEIGHT, DUMMY_COL_INDICES)
         #new_frame = cv2.flip(new_frame, 1)
-        cv2.imwrite('new_frame.png', new_frame)
+        cv2.imshow("debug", new_frame)
 
-        send_frame_to_led_panels(new_frame, number_of_ports_in_use)
+        send_frame_to_led_panels(new_frame, num_ports)
         key = cv2.waitKey(20)
         if key == 27:  # exit on ESC
             break
-        frame_count -= 1
+
+        have_frame, frame = vc.read()
 
     cv2.destroyWindow("preview")
-    close_all_ports(number_of_ports_in_use)
+    cv2.destroyWindow("debug")
+    close_all_ports(num_ports)
 
 
 if __name__ == "__main__":

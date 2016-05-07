@@ -6,7 +6,6 @@ from bitstring import BitArray
 gamma = 1.7
 gamma_table = []
 
-
 def initialise_gamma_table():
     for i in range(0, 256):
         gamma_table.append(int(np.power(i / 255.0, gamma) * 255.0 + 0.5))
@@ -97,10 +96,10 @@ def image_to_data(image, layout):
         #print 'xbeing: ' + str(xbegin) + ' xend: ' + str(xend) + ' xinc: ' + str(xinc)
         for x in range(xbegin, xend, xinc):
             for i in range(0, 8):  # fetch 8 pixels from the image, 1 for each pin
-               # tmp = (np.copy(new_image[x, (y + lines_per_pin * i), :]))
-                tmp = (np.copy(new_image[x, (y + lines_per_pin * i) * width, :]))
+                tmp = (np.copy(image[x, (y + lines_per_pin * i), :]))
+                # tmp = (np.copy(new_image[x, (y + lines_per_pin * i) * width, :]))
 
-                pixel[i] = image.pixels[x + (y + linesPerPin * i) * image.width];
+                # pixel[i] = image.pixels[x + (y + linesPerPin * i) * image.width];
 
                 tmp[0] &= 0x00 #green - should be blue
                 tmp[1] &= 0xFF #red - should be green
