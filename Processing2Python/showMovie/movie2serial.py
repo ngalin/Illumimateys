@@ -131,16 +131,18 @@ def main(argv):
     if argv:
         filename = argv[0]
 
+    defish = False
     if filename:
         cap = open_file(filename)
     else:
         cap = open_camera()
+        defish = True
     if not cap.isOpened:
         print "Failed to open capture"
         return
 
     print "Initialising pipeline"
-    pipeline = Pipeline(CAPTURE_SIZE)
+    pipeline = Pipeline(defish)
 
     print "Initialising serial ports"
     num_ports = initialise_serial_ports()
@@ -155,7 +157,7 @@ def main(argv):
     frameno = 0
     have_frame, frame = cap.read()
     while have_frame:
-        # frame = cv2.imread("/Users/alex/Desktop/fish.jpg")
+        # frame = cv2.imread("/Users/alex/Desktop/shadowwall-test-1.png")
         preview_frame = cv2.resize(frame, PREVIEW_SIZE)
         cv2.imshow("preview", preview_frame)
 
