@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import sys
+
 import numpy as np
 import cv2
 import serial
@@ -11,6 +13,9 @@ import helperFunctions as hp
 MAX_NUM_PORTS = 24
 TARGET_FRAME_RATE = 30
 
+CAPTURE_SIZE = (1920, 1080)
+PREVIEW_SIZE = (CAPTURE_SIZE[0]/4, CAPTURE_SIZE[1]/4)
+
 led_serial = []
 led_image = []
 led_area = []
@@ -18,8 +23,7 @@ led_layout = []
 
 PANEL_WIDTH = 180
 PANEL_HEIGHT = 120
-#idx_dummy_columns = np.array([147, 151, 155, 159])
-DUMMY_COL_INDICES = np.array([27, 31, 35, 39])
+DUMMY_COL_INDICES = list(range(24, 24+16, 4))
 
 # ask a Teensy board for its LED configuration, and set up the info for it.
 def serial_configure(port_name, port_num):
@@ -76,22 +80,8 @@ def close_all_ports(num_ports):
     for i in range(0, num_ports):
         led_serial[i].close()
 
-
-# int initialiseProcessingPipeline():
-#   opencv = new OpenCV(this, WidthInPixels, HeightInPixels);
-#   println("Using color?", opencv.getUseColor());
-#   //opencv.useGray();
-#
-#   blobDetector = new BlobDetection(WidthInPixels, HeightInPixels);
-#   //BlobDetection.setConstants(5, 20, 60);
-#   blobDetector.setThreshold(0.5);
-#   blobDetector.setPosDiscrimination(true); // find highlights, not lowlights
-# }
-
 def send_frame_to_led_panels(frame, num_ports):
     # Write the frame to panels
-    [height, width, depth] = frame.shape
-
     for teensy_idx in range(0, num_ports):
         # copy a portion of the movie's image to the LED image
         xoffset = led_area[teensy_idx].x
@@ -99,24 +89,9 @@ def send_frame_to_led_panels(frame, num_ports):
         twidth = led_area[teensy_idx].width
         theight = led_area[teensy_idx].height
 
-        # print 'xoffset: ' + str(xoffset)
-        # print 'yoffset: ' + str(yoffset)
-        # print 'width: ' + str(twidth)
-        # print 'height: ' + str(theight)
-        #
-        # print 'start width: ' + str(xoffset) + ' end width: ' + str(xoffset + twidth)
-        # print 'start height: ' + str(yoffset) + ' end height: ' + str(yoffset + theight)
-        #
-        # print frame.shape
-
         # determine what portion of frame to send to given Teensy:
-        # led_image[teensy_idx] = np.copy(frame[xoffset:xoffset+theight,yoffset:yoffset+twidth,:])
         led_image[teensy_idx] = np.copy(frame[yoffset:yoffset + theight, xoffset:xoffset + twidth, :])
-        # convert the LED image to raw data byte[]
-        #print 'led_image[teensy_idx] ' + str(led_image[teensy_idx].shape)
         led_data = hp.image_to_data(led_image[teensy_idx], led_layout[teensy_idx])
-
-#        led_data = bytearray(led_image[teensy_idx])
 
         # send byte data to Teensys:
        # if teensy_idx == 0:
@@ -129,44 +104,70 @@ def send_frame_to_led_panels(frame, num_ports):
         #     led_data[1] = 0
         #     led_data[2] = 0
 
-        # and finally send the raw data to the LEDs
-        #print led_serial[teensy_idx]
-        print 'Length LED data: ' + str(len(led_data))
         led_serial[teensy_idx].write(bytes(led_data))
 
+def open_camera():
+    print "Opening capture from camera at", CAPTURE_SIZE
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.cv.CV_CAP_PROP_FPS, 30)
+    cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, CAPTURE_SIZE[0])
+    cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, CAPTURE_SIZE[1])
+    # cap.set(cv2.cv.CV_CAP_PROP_GAIN, 1)
+    # cap.set(cv2.cv.CV_CAP_PROP_EXPOSURE, 1)
+    return cap
 
-def main():
+def open_file(path):
+    print "Opening capture from", path
+    cap = cv2.VideoCapture(path)
+    return cap
+
+def main(argv):
+    filename = None
+    if argv:
+        filename = argv[0]
+
+    if filename:
+        cap = open_file(filename)
+    else:
+        cap = open_camera()
+    if not cap.isOpened:
+        print "Failed to open capture"
+        return
+
+    print "Initialising serial ports"
     num_ports = initialise_serial_ports()
     print "Initialised", num_ports, "ports"
 
-    hp.initialise_gamma_table()
+    print "Initialising pipeline"
 
     # Open a preview window
     cv2.namedWindow("preview")
     cv2.namedWindow("debug")
 
-    # now capture frames from webcam:
-    # vc = cv2.VideoCapture(0)
-    vc = cv2.VideoCapture("/tmp/shadowwall.mp4")
-
-    have_frame, frame = False, None
-    if vc.isOpened():  # try to get the first frame
-        have_frame, frame = vc.read()
-
+    tstart = time.time()
+    frameno = 0
+    have_frame, frame = cap.read()
     while have_frame:
-        cv2.imshow("preview", frame)
+        # frame = cv2.imread("/Users/alex/Desktop/shadowwall-test-1.png")
+        preview_frame = cv2.resize(frame, PREVIEW_SIZE)
+        cv2.imshow("preview", preview_frame)
 
         # resize frame to exactly be the dimensions of LED panel
         new_frame = hp.resize(frame, PANEL_WIDTH, PANEL_HEIGHT, DUMMY_COL_INDICES)
-        #new_frame = cv2.flip(new_frame, 1)
         cv2.imshow("debug", new_frame)
-
         send_frame_to_led_panels(new_frame, num_ports)
-        key = cv2.waitKey(20)
+
+        key = cv2.waitKey(1)
         if key == 27:  # exit on ESC
             break
 
-        have_frame, frame = vc.read()
+        tend = time.time()
+        if frameno % TARGET_FRAME_RATE == 0:
+            duration = (tend - tstart)
+            print "Frame took", duration * 1000, "ms,", (1/duration), "fps"
+        tstart = time.time()
+        frameno += 1
+        have_frame, frame = cap.read()
 
     cv2.destroyWindow("preview")
     cv2.destroyWindow("debug")
@@ -174,4 +175,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

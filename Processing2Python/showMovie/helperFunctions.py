@@ -1,64 +1,14 @@
 import numpy as np
 import cv2
-import binascii
 
-gamma = 1.7
-gamma_table = []
+gamma = 2.8#1.7
+gamma_table = [int(((i / 255.0) ** gamma) * 255.0 + 0.5) for i in range(256)]
 
-def initialise_gamma_table():
-    for i in range(0, 256):
-        gamma_table.append(int(np.power(i / 255.0, gamma) * 255.0 + 0.5))
-
-
-# convert an integer from 0 to 100 to a float percentage
-# from 0.0 to 1.0.  Special cases for 1/3, 1/6, 1/7, etc
-# are handled automatically to fix integer rounding.
-def percentage_float(percent):
-    if percent == 33:
-        return 1.0 / 3.0
-    if percent == 17:
-        return 1.0 / 6.0
-    if percent == 14:
-        return 1.0 / 7.0
-    if percent == 13:
-        return 1.0 / 8.0
-    if percent == 11:
-        return 1.0 / 9.0
-    if percent == 9:
-        return 1.0 / 11.0
-    if percent == 8:
-        return 1.0 / 12.0
-    return np.double(percent / 100.0)
-
-# scale a number by a percentage, from 0 to 100
-def percentage(num, percent):
-    mult = percentage_float(percent)
-    return int(num * mult)
-
-# scale a number by the inverse of a percentage, from 0 to 100
-def percentage_inverse(num, percent):
-    div = percentage_float(percent)
-    return int(num / div)
-
-def int2bytes(i):
-    hex_string = '%x' % i
-    n = len(hex_string)
-    return binascii.unhexlify(hex_string.zfill(n + (n & 1)))
-
-def convert_rgb_2_grb(color):
-    red = (color & 0xFF0000) >> 16
-    green = (color & 0x00FF00) >> 8
-    blue = (color & 0x0000FF)
-
-    return grb(red, green, blue)
-
-def grb(red, green, blue):
-    red = gamma_table[red]
-    green = gamma_table[green]
+def bgr2grb(blue, green, red):
     blue = gamma_table[blue]
+    green = gamma_table[green]
+    red = gamma_table[red]
     return (green << 16) | (red << 8) | blue
-
-
 
 # image2data converts an image to OctoWS2811's raw data format.
 # The number of vertical pixels in the image must be a multiple
@@ -90,13 +40,13 @@ def image_to_data(image, strip_layout_direction):
             pixels = [0] * 8
             for i in range(0, 8):  # fetch 8 pixels from the image, 1 for each strip
                 pixel_channels = np.copy(image[x, (y + lines_per_pin * i), :])
-                pixels[i] = grb(pixel_channels[0], pixel_channels[1], pixel_channels[2])
+                pixels[i] = bgr2grb(pixel_channels[0], pixel_channels[1], pixel_channels[2])
 
-                # Reduce intensity by discarding least significant 4 bits
-                pixels[i] &= 0xf0f0f0
-                pixels[i] >>= 4
+                # Reduce intensity by discarding least significant bits
+                pixels[i] &= 0xf8f8f8
+                pixels[i] >>= 3
 
-            # convert 8 pixels to 24 bytes
+            # serialise 8 pixels to 24 bytes
             mask = 0x800000
             while mask != 0:
                 b = 0
@@ -116,9 +66,9 @@ def add_dummy_columns(image, idx_dummy_columns):
     height, width = r.shape
 
     for i in range(0, len(idx_dummy_columns)):
-        r = np.insert(r, idx_dummy_columns[i], np.zeros(height), axis=1)
-        g = np.insert(g, idx_dummy_columns[i], np.zeros(height), axis=1)
         b = np.insert(b, idx_dummy_columns[i], np.zeros(height), axis=1)
+        g = np.insert(g, idx_dummy_columns[i], np.zeros(height), axis=1)
+        r = np.insert(r, idx_dummy_columns[i], np.zeros(height), axis=1)
     return cv2.merge((b, g, r))
 
 def resize(frame, width, height, extra_columns_idxs):
