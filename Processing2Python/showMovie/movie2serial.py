@@ -124,6 +124,7 @@ def open_camera():
 def open_file(path):
     print "Opening capture from", path
     cap = cv2.VideoCapture(path)
+    cap.set(cv2.cv.CV_CAP_PROP_FPS, 30)
     return cap
 
 def main(argv):
@@ -154,15 +155,14 @@ def main(argv):
     cv2.namedWindow("debug")
 
     tstart = time.time()
-    frameno = 0
     have_frame, frame = cap.read()
+    framecount = 1
     while have_frame:
         # frame = cv2.imread("/Users/alex/Desktop/shadowwall-test-1.png")
         preview_frame = cv2.resize(frame, PREVIEW_SIZE)
         cv2.imshow("preview", preview_frame)
 
         frame = pipeline.process(frame)
-
         send_frame_to_led_panels(frame, num_ports)
 
         key = cv2.waitKey(1)
@@ -170,12 +170,17 @@ def main(argv):
             break
 
         tend = time.time()
-        if frameno % TARGET_FRAME_RATE == 0:
+        if framecount % TARGET_FRAME_RATE == 0:
             duration = (tend - tstart)
             print "Frame took", duration * 1000, "ms,", (1/duration), "fps"
         tstart = time.time()
-        frameno += 1
         have_frame, frame = cap.read()
+        framecount += 1
+        if filename and not have_frame:
+            framecount = 0
+            cap = open_file(filename)
+            have_frame, frame = cap.read()
+
 
     cv2.destroyWindow("preview")
     cv2.destroyWindow("panels")

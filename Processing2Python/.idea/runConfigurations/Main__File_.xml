@@ -13,7 +13,7 @@
     <module name="Processing2Python" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/showMovie/movie2serial.py" />
-    <option name="PARAMETERS" value="/tmp/shadowwall.mp4" />
+    <option name="PARAMETERS" value="$USER_HOME$/Desktop/shadowwall/ir1.mov" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <method />
   </configuration>
