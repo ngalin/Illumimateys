@@ -133,17 +133,19 @@ def main(argv):
         filename = argv[0]
 
     defish = False
+    crop = ()#(306, 204) # w, h
     if filename:
         cap = open_file(filename)
     else:
         cap = open_camera()
         defish = True
+        crop = ()
     if not cap.isOpened:
         print "Failed to open capture"
         return
 
     print "Initialising pipeline"
-    pipeline = Pipeline(defish)
+    pipeline = Pipeline(defish, crop)
 
     print "Initialising serial ports"
     num_ports = initialise_serial_ports()

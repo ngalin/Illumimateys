@@ -1,13 +1,16 @@
 import numpy as np
 import cv2
 
-gamma = 2.8#1.7
-gamma_table = [int(((i / 255.0) ** gamma) * 255.0 + 0.5) for i in range(256)]
+def make_gamma_table(g):
+    return [int(((i / 255.0) ** g) * 255.0 + 0.5) for i in range(256)]
+
+led_gamma = 2.8#1.7
+led_gamma_table = make_gamma_table(led_gamma) #[int(((i / 255.0) ** led_gamma) * 255.0 + 0.5) for i in range(256)]
 
 def bgr2grb(blue, green, red):
-    blue = gamma_table[blue]
-    green = gamma_table[green]
-    red = gamma_table[red]
+    blue = led_gamma_table[blue]
+    green = led_gamma_table[green]
+    red = led_gamma_table[red]
     return (green << 16) | (red << 8) | blue
 
 # image2data converts an image to OctoWS2811's raw data format.
