@@ -61,6 +61,7 @@
     <Compile Include="Filters\AgingFilter.cs" />
     <Compile Include="Filters\GroundingFilter.cs" />
     <Compile Include="Filters\IPointCloudFilter.cs" />
+    <Compile Include="Filters\LightSourceFilter.cs" />
     <Compile Include="Models\PointFrame.cs" />
     <Compile Include="Models\BodyFrame.cs" />
     <Compile Include="PointCloud.xaml.cs">
