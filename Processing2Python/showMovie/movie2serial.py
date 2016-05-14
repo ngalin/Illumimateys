@@ -133,7 +133,7 @@ def main(argv):
         filename = argv[0]
 
     defish = False
-    crop = ()#(306, 204) # w, h
+    crop = (306, 204) # w, h
     if filename:
         cap = open_file(filename)
     else:

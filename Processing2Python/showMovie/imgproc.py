@@ -34,11 +34,17 @@ class Pipeline(object):
         self.flowstate = None
 
     def process(self, img):
+        shape = img.shape
         if self.crop:
-            shape = img.shape
             xmargin = shape[1] - self.crop[0]
             ymargin = shape[0] - self.crop[1]
-            img = img[ymargin:shape[0], xmargin/2:-xmargin/2]
+            croprect = slice(ymargin, shape[0]), slice(xmargin/2, shape[1]-xmargin/2)
+        else:
+            croprect = slice(0, shape[0]), slice(0, shape[1])
+
+        # img = transform_perspective(img, croprect) # or
+        img = img[croprect[0], croprect[1]]
+
         # Simplify to grayscale for processing
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         is_color = False
@@ -53,17 +59,16 @@ class Pipeline(object):
             img = cv2.resize(img, (img.shape[1]/2, img.shape[0]/2))
 
         ### Analysis (in greyscale)
-        # img = morph_cleanup(img)
-        # contours = find_contours(img)
+        img = morph_cleanup(img)
+        contours = find_contours(img)
 
-        brighter = cv2.LUT(img, gammatable)
-        img = brighter
-
-        self.flowstate, flowimg = compute_flow(self.prev_grey_img, img, self.flowstate)
-        self.prev_grey_img = img
-        if flowimg is not None:
-            img = flowimg
-            is_color = True
+        # brighter = cv2.LUT(img, gammatable)
+        # img = brighter
+        # self.flowstate, flowimg = compute_flow(self.prev_grey_img, img, self.flowstate)
+        # self.prev_grey_img = img
+        # if flowimg is not None:
+        #     img = flowimg
+        #     is_color = True
 
         ### Drawing (in colour)
         if not is_color:
@@ -72,6 +77,32 @@ class Pipeline(object):
 
         cv2.imshow("debug", img)
         return img
+
+
+def transform_perspective(img, croprect):
+    # Croprect is (y, x)
+    # I don't know how to compute the rectangle. Possibly this could be combined with
+    # the cropping to do both at once, to get the right target frame size
+    # The target frame bounds as destination
+    dst_rect = np.array([
+        (croprect[0].start, croprect[1].start), # tl
+        (croprect[0].stop, croprect[1].start),  # bl
+        (croprect[0].stop, croprect[1].stop),   # br
+        (croprect[0].start, croprect[1].stop),  # tr
+    ], dtype=np.float32)
+    # Warped rectangle to project into the frame as src
+    shape = img.shape
+    src_rect = np.array([
+        (0,   0),
+        (shape[0],        0),
+        (shape[0],        shape[1]),
+        (0,   shape[1]),
+    ], dtype=np.float32)
+
+    pmat = cv2.getPerspectiveTransform(src_rect, dst_rect)
+    size = (croprect[1].stop,croprect[0].stop)
+    warped = cv2.warpPerspective(img, pmat, size)
+    return warped
 
 
 def morph_cleanup(img):
