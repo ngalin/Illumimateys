@@ -1,26 +1,26 @@
 /*  OctoWS2811 movie2serial.pde - Transmit video data to 1 or more
-      Teensy 3.0 boards running OctoWS2811 VideoDisplay.ino
-    http://www.pjrc.com/teensy/td_libs_OctoWS2811.html
-    Copyright (c) 2013 Paul Stoffregen, PJRC.COM, LLC
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-    THE SOFTWARE.
-*/
+ Teensy 3.0 boards running OctoWS2811 VideoDisplay.ino
+ http://www.pjrc.com/teensy/td_libs_OctoWS2811.html
+ Copyright (c) 2013 Paul Stoffregen, PJRC.COM, LLC
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+ */
 
 // Imports
 //=====================================================================================
@@ -30,17 +30,24 @@ import gab.opencv.*;
 import processing.video.*;
 import processing.video.Movie;
 import processing.serial.*;
+import processing.core.*;
 import java.awt.Rectangle;
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
+import java.io.StringBufferInputStream;
+import java.awt.image.BufferedImage;
+import processing.net.*;
 
 // Constants
 //=====================================================================================
 // Macbook Pro ix 1280x1024. Set these to match camera's native resolution.
+boolean camEnabled = false;
 int CameraWidth = 1280;
 int CameraHeight = 720;
 int TargetFrameRate = 30;
 
 // The panel is 180w x 120h, i.e. 3:2. Using double resolution for processing/display.
-int ResolutionMultiple = 1;
+int ResolutionMultiple = 4;
 int WidthInPixels = 180 * ResolutionMultiple;
 int HeightInPixels = 120 * ResolutionMultiple;
 float PanelAspect = WidthInPixels / (float)HeightInPixels;
@@ -49,6 +56,8 @@ float PanelAspect = WidthInPixels / (float)HeightInPixels;
 //String MovieFileName = "/tmp/shadowwall.avi";
 String MovieFileName = "/Users/srdjankrstic/Programming/PhilipsCircle_10secs.avi";
 //String MovieFileName = "/non-existent_file.avi";
+
+int ServerPort = 8084;
 
 // Variables
 //=====================================================================================
@@ -75,6 +84,9 @@ int[] gammaTable = new int[256];
 int numberOfPortsInUse = 0;
 int errorCount = 0;
 
+// Web server
+Server server;
+
 // Setup methods
 //=====================================================================================
 
@@ -89,11 +101,43 @@ void setup() {
   initialiseSerialPorts();
   initialiseGammaTable();
   initialiseVideoStream();
+  initialiseServer();
   initialiseProcessingPipeline();
 }
- 
+
+byte[] message;
+Client lastClient;
+
 // Called to render the screen - on this computer, not the LED panel.
 void draw() {
+  Client client = server.available();
+
+  if (client != null && client.available() > 0) {
+    byte[] imageBytes = client.readBytes();
+
+    if (imageBytes != null)
+    {
+      if (message == null)
+      {
+        message = imageBytes; 
+        lastClient = client;
+      } else if (client == lastClient)
+      {
+        message = mergeByteArray(message, imageBytes);
+      } 
+      else
+      {
+        PImage image = getAsImage(message);
+
+        if (image != null) {
+          lastRenderFrame = image;
+        }
+        message = imageBytes;
+        lastClient = client;
+      }
+    }
+  }
+
   // Show the frame on screen
   int xPosition = 0, yPosition = 0; 
   if (lastRenderFrame != null) {
@@ -102,7 +146,7 @@ void draw() {
     //print ("Movie not ready yet");
     return;
   }
-  
+
   // Copy the frame from the display window to send to panels.
   PImage frame = get(0, 0, WidthInPixels, HeightInPixels);
   sendFrameToLedPanels(frame);
@@ -121,11 +165,11 @@ void drawPanelData() {
     // compute the intended size of the entire LED array
     int xsize = percentageInverse(ledImage[i].width, ledArea[i].width);
     int ysize = percentageInverse(ledImage[i].height, ledArea[i].height);
-    
+
     // computer this image's position within it
     int xloc =  percentage(xsize, ledArea[i].x);
     int yloc =  percentage(ysize, ledArea[i].y);
-    
+
     // show what should appear on the LEDs (this layout is probably wrong)
     image(ledImage[i], WidthInPixels - xsize / 2 + xloc, HeightInPixels + yloc);
   }
@@ -159,7 +203,9 @@ void initialiseVideoStream() {
   if (movieFile.exists()) {
     movieStream = new Movie(this, MovieFileName);
     movieStream.loop();
-  } else {
+    return;
+  } else if (camEnabled)
+  {
     print("Can't find " + MovieFileName);
     // Note that the parameters to capture must be compatible with the camera; not all parameters are
     // accepted and a mismatch distorts the video.
@@ -167,18 +213,38 @@ void initialiseVideoStream() {
     processingStream.start();
   }
 }
+ //<>//
+void initialiseServer() {
+  server = new Server(this, ServerPort);
+}
 
 void initialiseProcessingPipeline() {
   opencv = new OpenCV(this, WidthInPixels, HeightInPixels);
   blobDetector = new BlobDetection(WidthInPixels, HeightInPixels);
-  //BlobDetection.setConstants(5, 20, 60);
+  //BlobDetection.setConstants(5, 20, 60); //<>//
   blobDetector.setThreshold(0.5);
   blobDetector.setPosDiscrimination(true); // find highlights, not lowlights
 }
 
+PImage getAsImage(byte[] bytes) {
+  try {
+    ByteArrayInputStream bis = new ByteArrayInputStream(bytes); 
+    BufferedImage bimg = ImageIO.read(bis); 
+    PImage img=new PImage(bimg.getWidth(), bimg.getHeight(), PConstants.ARGB);
+    bimg.getRGB(0, 0, img.width, img.height, img.pixels, 0, img.width);
+    img.updatePixels();
+    return img;
+  }
+  catch(Exception e) {
+    System.err.println("Can't create image from buffer");
+    //   e.printStackTrace();
+  }
+  return null;
+}
+
 // Processing methods
 //=====================================================================================
- 
+
 // Called every time a new frame is available to read.
 void movieEvent(Movie movieFrame) {
   int m = millis();
@@ -196,6 +262,18 @@ void captureEvent(Capture capture) {
   if (frameCount % TargetFrameRate == 0) {
     println("captureEvent took", (millis() - m), "ms");
   }
+}
+
+void serverEvent(Server someServer, Client someClient) {
+  println("Client conected " + someClient.ip());
+}
+
+public byte[] mergeByteArray(byte[] a, byte[] b)
+{
+  byte[] c = new byte[a.length + b.length];
+  System.arraycopy(a, 0, c, 0, a.length);
+  System.arraycopy(b, 0, c, a.length, b.length);
+  return c;
 }
 
 // respond to mouse clicks as pause/play
