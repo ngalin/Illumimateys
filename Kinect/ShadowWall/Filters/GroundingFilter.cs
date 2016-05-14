@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace ShadowWall.Filters
 {
@@ -11,24 +10,17 @@ namespace ShadowWall.Filters
 			var kinnectToFloorDistance = Math.Sqrt((Math.Pow(kinnectHeight, 2) + Math.Pow(minimumDistanceToWall, 2)));
 			var floorSlopeAngle = Math.Asin(kinnectHeight / minimumDistanceToWall);
 
-			currentCloud = currentCloud.Select(point => TransformPoint(point, kinnectToFloorDistance, floorSlopeAngle));
+			foreach (var point in currentCloud)
+			{
+				TransformPoint(point, kinnectToFloorDistance, floorSlopeAngle);
+			}
 		}
 
-		PointFrame TransformPoint(PointFrame point, double kinnectToFloorDistance, double floorSlopeAngle)
+		void TransformPoint(PointFrame point, double kinnectToFloorDistance, double floorSlopeAngle)
 		{
 			var pointAngle = Math.Asin(point.Y / point.Z);
 			var newAngle = pointAngle - floorSlopeAngle;
-			var newPointY = point.Z * Math.Sin(newAngle);
-
-			return new PointFrame()
-			{
-				R = point.R,
-				G = point.G,
-				B = point.B,
-				X = point.X,
-				Y = (int)newPointY,
-				Z = point.Z
-			};
+			point.Z = (int)(point.Z * Math.Sin(newAngle));
 			
 		}
 
