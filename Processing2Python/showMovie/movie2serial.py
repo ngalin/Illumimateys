@@ -150,9 +150,9 @@ def main(argv):
     print "Initialised", num_ports, "ports"
 
     # Open a preview window
-    cv2.namedWindow("preview")
-    cv2.namedWindow("panels")
+    cv2.namedWindow("capture")
     cv2.namedWindow("debug")
+    cv2.namedWindow("panels")
 
     tstart = time.time()
     have_frame, frame = cap.read()
@@ -160,7 +160,7 @@ def main(argv):
     while have_frame:
         # frame = cv2.imread("/Users/alex/Desktop/shadowwall-test-1.png")
         preview_frame = cv2.resize(frame, PREVIEW_SIZE)
-        cv2.imshow("preview", preview_frame)
+        cv2.imshow("capture", preview_frame)
 
         frame = pipeline.process(frame)
         send_frame_to_led_panels(frame, num_ports)
@@ -182,7 +182,8 @@ def main(argv):
             have_frame, frame = cap.read()
 
 
-    cv2.destroyWindow("preview")
+    cv2.destroyWindow("capture")
+    cv2.destroyWindow("debug")
     cv2.destroyWindow("panels")
     close_all_ports(num_ports)
 
