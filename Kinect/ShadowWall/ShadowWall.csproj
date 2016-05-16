@@ -62,6 +62,8 @@
     <Compile Include="Filters\GroundingFilter.cs" />
     <Compile Include="Filters\IPointCloudFilter.cs" />
     <Compile Include="Filters\LightSourceFilter.cs" />
+    <Compile Include="Input\IFrameProvider.cs" />
+    <Compile Include="Input\KinnectFrameProvider.cs" />
     <Compile Include="Models\PointFrame.cs" />
     <Compile Include="Models\BodyFrame.cs" />
     <Compile Include="PointCloud.xaml.cs">

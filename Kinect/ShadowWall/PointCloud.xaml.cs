@@ -27,13 +27,10 @@ namespace ShadowWall
 			//pointCloudWriter = new MeshGeometryPointCloudWriter(Mesh); // This will print the processed point cloud on the 3D mesh
 			//pointCloudWriter = new ImagePointCloudWriter(DepthImage); // This will print the processed point cloud in the Depth image control
 			pointCloudWriter = new SocketCloudWriter(DepthImage);
-			var sensor = KinectSensor.GetDefault();
-			sensor.Open();
 
-			var depthReader = sensor.DepthFrameSource.OpenReader();
-			depthReader.FrameArrived += depthReader_FrameArrived;
+			frameProvider = new KinnectFrameProvider();
 
-			var bodyReader = sensor.BodyFrameSource.OpenReader();
+			frameProvider.FrameArrived += depthReader_FrameArrived;
 
 			filters = new IPointCloudFilter[]
 			{
@@ -45,49 +42,39 @@ namespace ShadowWall
 
 		void PointCloud_Closed(object sender, EventArgs e)
 		{
-			KinectSensor.GetDefault().Close();
+			frameProvider.Dispose();
 			pointCloudWriter.Dispose();
 		}
 
-		void depthReader_FrameArrived(object sender, DepthFrameArrivedEventArgs e)
+		void depthReader_FrameArrived(object sender, FrameArrivedArgs e)
 		{
 			if(last != null && !last.IsCompleted)
 			{
 				return;
 			}
+			
+			var depths = e.Depths;
 
-			using (var frame = e.FrameReference.AcquireFrame())
+			if (IsRecording)
 			{
-				if (frame != null)
-				{
-					var width = frame.FrameDescription.Width;
-					var height = frame.FrameDescription.Height;
-					var depths = new ushort[width * height];
-
-					frame.CopyFrameDataToArray(depths);
-
-					if (IsRecording)
-					{
-						RecordDepths(depths);
-					}
-
-					for (int i = 0; i < depths.Length; ++i)
-					{
-						depths[i] = depths[i] > (WallBreadth * 10) ? default(ushort) : depths[i];
-					}
-					
-					var newCloud = ConvertToPointCloud(depths, width, height);
-
-					foreach (var filter in filters)
-					{
-						newCloud = filter.Apply(newCloud);
-					}
-					
-					last = pointCloudWriter.WritePointCloudAsync(AsEnumerable(newCloud), width, height);
-					last.Wait();
-					Flush();
-				}
+				RecordDepths(depths);
 			}
+
+			for (int i = 0; i < depths.Length; ++i)
+			{
+				depths[i] = depths[i] > (WallBreadth * 10) ? default(ushort) : depths[i];
+			}
+					
+			var newCloud = ConvertToPointCloud(depths, e.Width, e.Height);
+
+			foreach (var filter in filters)
+			{
+				newCloud = filter.Apply(newCloud);
+			}
+					
+			last = pointCloudWriter.WritePointCloudAsync(AsEnumerable(newCloud), e.Width, e.Height);
+			last.Wait();
+			Flush();
 		}
 
 		Task last;
@@ -112,7 +99,7 @@ namespace ShadowWall
 
 		PointFrame[,] ConvertToPointCloud(ushort[] depths, int width, int height)
 		{
-			PointFrame[,] points = new PointFrame[width,height];
+			var points = PointFrame.NewCloud(width, height);
 
 			for (int i = 0; i < depths.Length; ++i)
 			{
@@ -186,6 +173,7 @@ namespace ShadowWall
 		#endregion
 
 		readonly IPointCloudWriter pointCloudWriter;
+		readonly IFrameProvider frameProvider;
 		IEnumerable<IPointCloudFilter> filters;
 	}
 }
