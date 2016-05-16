@@ -36,8 +36,8 @@ namespace ShadowWall
 			filters = new IPointCloudFilter[]
 			{
 				//new AgingFilter(),
-				//new GroundingFilter(),
-				new LightSourceFilter()
+				new GroundingFilter(),
+				//new LightSourceFilter()
 			};
 
 			DataContext = this;

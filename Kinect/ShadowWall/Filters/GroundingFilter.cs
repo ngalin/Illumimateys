@@ -41,8 +41,8 @@ namespace ShadowWall
 
 		#region Calibration
 
-		readonly double kinnectHeight = 2;
-		readonly double minimumDistanceToWall = 1.5;
+		readonly double kinnectHeight = 512; // Pixels
+		readonly double minimumDistanceToWall = 1500; // Milimetres
 
 		#endregion
 	}

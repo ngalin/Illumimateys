@@ -32,8 +32,8 @@ namespace ShadowWall
 
 		#region Calibration
 
-		readonly int lightSourceDepth = 10000;
-		readonly int lightSourceHeight = 700;
+		readonly int lightSourceDepth = 10000; // Milimetres
+		readonly int lightSourceHeight = 700; // Pixels
 
 		#endregion
 	}
