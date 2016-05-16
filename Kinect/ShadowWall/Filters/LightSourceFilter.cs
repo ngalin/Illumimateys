@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace ShadowWall.Filters
+namespace ShadowWall
 {
 	public class LightSourceFilter : IPointCloudFilter
 	{
@@ -11,16 +11,17 @@ namespace ShadowWall.Filters
 			{
 				for (int j = 0; j < currentCloud.GetLength(1); ++j)
 				{
-					if (currentCloud[i,j].Z == -1)
+					if (currentCloud[i,j].Z <= 0)
 					{
 						continue;
 					}
 
 					var newPoint = new PointFrame(currentCloud[i, j]);
 					var projectionSlope = (lightSourceHeight - newPoint.Y) / (lightSourceDepth - newPoint.Z);
-					newPoint.Y = lightSourceHeight - (projectionSlope * lightSourceDepth);
+					var sourceIntersection = lightSourceHeight - (projectionSlope * lightSourceDepth);
+					newPoint.Y = (1f * projectionSlope) + sourceIntersection;
 
-					if (newPoint.Y > 0)
+					if (newPoint.Y > 0 && newPoint.Y < resultCloud.GetLength(1))
 					{
 						resultCloud[i, (int)newPoint.Y] = newPoint;
 					}
@@ -31,8 +32,8 @@ namespace ShadowWall.Filters
 
 		#region Calibration
 
-		readonly int lightSourceDepth = 10;
-		readonly int lightSourceHeight = 2;
+		readonly int lightSourceDepth = 10000;
+		readonly int lightSourceHeight = 700;
 
 		#endregion
 	}
