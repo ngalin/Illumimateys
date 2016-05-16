@@ -25,10 +25,11 @@ namespace ShadowWall
 
 			//pointCloudWriter = new HttpPointCloudWriter(); // This will transmit the processed point cloud over HTTP
 			//pointCloudWriter = new MeshGeometryPointCloudWriter(Mesh); // This will print the processed point cloud on the 3D mesh
-			//pointCloudWriter = new ImagePointCloudWriter(DepthImage); // This will print the processed point cloud in the Depth image control
-			pointCloudWriter = new SocketCloudWriter(DepthImage);
+			pointCloudWriter = new ImagePointCloudWriter(DepthImage); // This will print the processed point cloud in the Depth image control
+			//pointCloudWriter = new SocketCloudWriter(DepthImage);
 
-			frameProvider = new KinnectFrameProvider();
+			//frameProvider = new KinnectFrameProvider();
+			frameProvider = new RecordingFrameProvider(@"C:\Users\cgled\Desktop\ShadowWallRecording1.csv");
 
 			frameProvider.FrameArrived += depthReader_FrameArrived;
 
@@ -71,8 +72,7 @@ namespace ShadowWall
 			{
 				newCloud = filter.Apply(newCloud);
 			}
-					
-			last = pointCloudWriter.WritePointCloudAsync(AsEnumerable(newCloud), e.Width, e.Height);
+			Dispatcher.Invoke(() => last = pointCloudWriter.WritePointCloudAsync(AsEnumerable(newCloud), e.Width, e.Height));
 			last.Wait();
 			Flush();
 		}
@@ -81,11 +81,11 @@ namespace ShadowWall
 
 		IEnumerable<PointFrame> AsEnumerable(PointFrame[,] cloud)
 		{
-			for (int i = 0; i < cloud.GetLength(0); ++i)
+			for (int i = cloud.GetLength(1) -1; i >= 0; --i)
 			{
-				for (int j = 0; j < cloud.GetLength(1); ++j)
+				for (int j = 0; j < cloud.GetLength(0); ++j)
 				{
-					yield return cloud[i, j];
+					yield return cloud[j, i];
 				}
 			}
 		}

@@ -1,29 +1,46 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ShadowWall.Input
+namespace ShadowWall
 {
 	public class RecordingFrameProvider : IFrameProvider
 	{
 		public RecordingFrameProvider(string fileName)
 		{
 			fileStream = File.OpenRead(fileName);
-			reader = new StreamReader(fileStream);
 
 			new Task(ProvideFrames).Start();
 		}
 
 		void ProvideFrames()
 		{
-			while (!reader.EndOfStream)
+			var currentFrame = new List<ushort>();
+			var currentNumber = new StringBuilder();
+			int currentByte;
+			while ((currentByte = fileStream.ReadByte()) != -1)
 			{
-				var frame = reader.ReadLine();
-				var depths = frame.Split(',').Select(depthStr => ushort.Parse(depthStr)).ToArray();
-				FrameArrived(null, new FrameArrivedArgs(depths, 640, 480));
-				Thread.Sleep(35);
+				var character = (char)currentByte;
+				if (character == ',')
+				{
+					currentFrame.Add(ushort.Parse(currentNumber.ToString()));
+					currentNumber = new StringBuilder();
+
+					if (currentFrame.Count == (recordedWidth * recordedHeight) - 1)
+					{
+						FrameArrived(null, new FrameArrivedArgs(currentFrame.ToArray(), recordedWidth, recordedHeight));
+						currentFrame = new List<ushort>();
+						Thread.Sleep(33);
+					}
+				}
+				else
+				{
+					currentNumber.Append(character);
+				}
 			}
 		}
 
@@ -31,11 +48,11 @@ namespace ShadowWall.Input
 
 		public void Dispose()
 		{
-			reader.Dispose();
 			fileStream.Dispose();
 		}
 
+		const int recordedWidth = 512;
+		const int recordedHeight = 424;
 		Stream fileStream;
-		StreamReader reader;
 	}
 }

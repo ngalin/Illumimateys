@@ -39,12 +39,15 @@ namespace ShadowWall
 			{
 				for (int j = 0; j < height; ++j)
 				{
-					result[i, j].X = i;
-					result[i, j].Y = j;
-					result[i, j].Z = -1;
-					result[i, j].R = 0;
-					result[i, j].G = 0;
-					result[i, j].B = 0;
+					result[i, j] = new PointFrame()
+					{
+						X = i,
+						Y = j,
+						Z = -1,
+						R = 0,
+						G = 0,
+						B = 0
+					};
 				}
 			}
 			return result;

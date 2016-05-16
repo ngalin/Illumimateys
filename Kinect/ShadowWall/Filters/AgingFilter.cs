@@ -8,10 +8,10 @@ namespace ShadowWall
 		{
 			if (previousCloud == null)
 			{
-				previousCloud = new PointFrame[currentCloud.GetLength(0), currentCloud.GetLength(1)];
+				previousCloud = PointFrame.NewCloud(currentCloud.GetLength(0), currentCloud.GetLength(1));
 			}
 
-			var resultCloud = new PointFrame[currentCloud.GetLength(0), currentCloud.GetLength(1)];
+			var resultCloud = PointFrame.NewCloud(currentCloud.GetLength(0), currentCloud.GetLength(1));
 			if (previousCloud.Length != currentCloud.Length)
 			{
 				Array.Copy(currentCloud, resultCloud, currentCloud.Length);
@@ -32,11 +32,13 @@ namespace ShadowWall
 							resultPoint.G = Math.Max(previousPoint.G - agingFactor, 1);
 							resultPoint.B = Math.Max(previousPoint.B - agingFactor, 1);
 						}
+
+						previousCloud[i, j] = resultPoint;
+						resultCloud[i, j] = resultPoint;
 					}
 				}
 			}
-
-			Array.Copy(resultCloud, previousCloud, resultCloud.Length);
+			
 			return resultCloud;
 		}
 
