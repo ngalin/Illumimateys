@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ShadowWall.Filters
+namespace ShadowWall
 {
 	public class GroundingFilter : IPointCloudFilter
 	{
@@ -8,13 +8,13 @@ namespace ShadowWall.Filters
 		{
 			var resultCloud = PointFrame.NewCloud(currentCloud.GetLength(0), currentCloud.GetLength(1));
 			var kinnectToFloorDistance = Math.Sqrt((Math.Pow(kinnectHeight, 2) + Math.Pow(minimumDistanceToWall, 2)));
-			var floorSlopeAngle = Math.Asin(kinnectHeight / minimumDistanceToWall);
+			var floorSlopeAngle = Math.Asin(kinnectHeight / kinnectToFloorDistance);
 
 			for (int i = 0; i < currentCloud.GetLength(0); ++i)
 			{
 				for (int j = 0; j < currentCloud.GetLength(1); ++j)
 				{
-					if (currentCloud[i,j].Z == -1)
+					if (currentCloud[i,j].Z <= 0)
 					{
 						continue;
 					}
