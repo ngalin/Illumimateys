@@ -3,16 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Media.Media3D;
 using System.Windows.Threading;
 
 namespace ShadowWall
@@ -25,11 +20,8 @@ namespace ShadowWall
 		public PointCloud()
 		{
 			InitializeComponent();
-
-			Loaded += PointCloud_Loaded;
+			
 			Closed += PointCloud_Closed;
-			KeyDown += PointCloud_KeyDown;
-			MouseWheel += PointCloud_MouseWheel;
 
 			//pointCloudWriter = new HttpPointCloudWriter(); // This will transmit the processed point cloud over HTTP
 			//pointCloudWriter = new MeshGeometryPointCloudWriter(Mesh); // This will print the processed point cloud on the 3D mesh
@@ -83,8 +75,7 @@ namespace ShadowWall
 					{
 						depths[i] = depths[i] > (WallBreadth * 10) ? default(ushort) : depths[i];
 					}
-
-					Clear(Mesh);
+					
 					var newCloud = ConvertToPointCloud(depths, width, height);
 
 					foreach (var filter in filters)
@@ -155,70 +146,11 @@ namespace ShadowWall
 
 			IsRecording = !IsRecording;
 		}
-
-		#region 3D
-
-		void PointCloud_Loaded(object sender, RoutedEventArgs e)
-		{
-		}
-
-		void PointCloud_KeyDown(object sender, KeyEventArgs e)
-		{
-			switch (e.Key)
-			{
-				case Key.Up:
-					RotateX.Angle += 10;
-					break;
-				case Key.Down:
-					RotateX.Angle -= 10;
-					break;
-				case Key.Left:
-					RotateY.Angle -= 10;
-					break;
-				case Key.Right:
-					RotateY.Angle += 10;
-					break;
-				case Key.W:
-					Camera.Position = new Point3D(Camera.Position.X, Camera.Position.Y - 50, Camera.Position.Z);
-					break;
-				case Key.S:
-					Camera.Position = new Point3D(Camera.Position.X, Camera.Position.Y + 50, Camera.Position.Z);
-					break;
-				case Key.A:
-					Camera.Position = new Point3D(Camera.Position.X + 50, Camera.Position.Y, Camera.Position.Z);
-					break;
-				case Key.D:
-					Camera.Position = new Point3D(Camera.Position.X - 50, Camera.Position.Y, Camera.Position.Z);
-					break;
-				default:
-					break;
-			}
-		}
-
-		void PointCloud_MouseWheel(object sender, MouseWheelEventArgs e)
-		{
-			if (e.Delta > 0)
-			{
-				Camera.Position = new Point3D(Camera.Position.X + 50, Camera.Position.Y - 50, Camera.Position.Z - 50);
-			}
-			else
-			{
-				Camera.Position = new Point3D(Camera.Position.X - 50, Camera.Position.Y + 50, Camera.Position.Z + 50);
-			}
-		}
-
-		void Clear(MeshGeometry3D mesh)
-		{
-			mesh.Positions.Clear();
-			mesh.TriangleIndices.Clear();
-		}
-
+		
 		void Flush()
 		{
 			Dispatcher.CurrentDispatcher.Invoke(DispatcherPriority.Background, new ThreadStart(delegate { }));
 		}
-
-		#endregion
 
 		public event PropertyChangedEventHandler PropertyChanged;
 		public int WallWidth { get { return 180; } }
