@@ -1,27 +1,42 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace ShadowWall.Filters
 {
 	public class GroundingFilter : IPointCloudFilter
 	{
-		public void Apply(IEnumerable<PointFrame> currentCloud)
+		public PointFrame[,] Apply(PointFrame[,] currentCloud)
 		{
+			var resultCloud = PointFrame.NewCloud(currentCloud.GetLength(0), currentCloud.GetLength(1));
 			var kinnectToFloorDistance = Math.Sqrt((Math.Pow(kinnectHeight, 2) + Math.Pow(minimumDistanceToWall, 2)));
 			var floorSlopeAngle = Math.Asin(kinnectHeight / minimumDistanceToWall);
 
-			foreach (var point in currentCloud)
+			for (int i = 0; i < currentCloud.GetLength(0); ++i)
 			{
-				TransformPoint(point, kinnectToFloorDistance, floorSlopeAngle);
+				for (int j = 0; j < currentCloud.GetLength(1); ++j)
+				{
+					if (currentCloud[i,j].Z == -1)
+					{
+						continue;
+					}
+
+					var newPoint = TransformPoint(currentCloud[i, j], kinnectToFloorDistance, floorSlopeAngle);
+					if (newPoint.Y >= 0)
+					{
+						resultCloud[(int)newPoint.X, (int)newPoint.Y] = newPoint;
+					}
+				}
 			}
+
+			return resultCloud;
 		}
 
-		void TransformPoint(PointFrame point, double kinnectToFloorDistance, double floorSlopeAngle)
+		PointFrame TransformPoint(PointFrame point, double kinnectToFloorDistance, double floorSlopeAngle)
 		{
-			var pointAngle = Math.Asin(point.Y / point.Z);
+			var resultPoint = new PointFrame(point);
+			var pointAngle = Math.Asin(resultPoint.Y / resultPoint.Z);
 			var newAngle = pointAngle - floorSlopeAngle;
-			point.Z = (int)(point.Z * Math.Sin(newAngle));
-			
+			resultPoint.Y = (int)(resultPoint.Z * Math.Sin(newAngle));
+			return resultPoint;
 		}
 
 		#region Calibration

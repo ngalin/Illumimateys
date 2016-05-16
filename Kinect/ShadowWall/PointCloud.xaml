@@ -16,7 +16,6 @@
 			<ColumnDefinition Width="1024"/>
 			<ColumnDefinition Width="1024"/>
 		</Grid.ColumnDefinitions>
-		<Button Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" x:Name="snapshotButton" Click="snapshotButton_Click" Content="Snapshot"/>
 		<Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" x:Name="recordButton" Click="recordButton_Click" Content="{Binding RecordButtonContent}" />
 		<Viewport3D Grid.Row="2" Grid.Column="1" x:Name="Viewport" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" RenderTransformOrigin="0.486,0.639" >
 			<Viewport3D.RenderTransform>

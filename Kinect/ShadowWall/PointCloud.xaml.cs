@@ -42,7 +42,6 @@ namespace ShadowWall
 			depthReader.FrameArrived += depthReader_FrameArrived;
 
 			var bodyReader = sensor.BodyFrameSource.OpenReader();
-			CurrentCloud = new List<PointFrame>();
 
 			filters = new IPointCloudFilter[]
 			{
@@ -90,21 +89,28 @@ namespace ShadowWall
 
 					foreach (var filter in filters)
 					{
-						filter.Apply(newCloud);
+						newCloud = filter.Apply(newCloud);
 					}
 					
-					last = pointCloudWriter.WritePointCloudAsync(newCloud, width, height);
+					last = pointCloudWriter.WritePointCloudAsync(AsEnumerable(newCloud), width, height);
 					last.Wait();
-					lock (currentCloudLock)
-					{
-						CurrentCloud = newCloud;
-					}
 					Flush();
 				}
 			}
 		}
 
 		Task last;
+
+		IEnumerable<PointFrame> AsEnumerable(PointFrame[,] cloud)
+		{
+			for (int i = 0; i < cloud.GetLength(0); ++i)
+			{
+				for (int j = 0; j < cloud.GetLength(1); ++j)
+				{
+					yield return cloud[i, j];
+				}
+			}
+		}
 
 		void RecordDepths(ushort[] depths)
 		{
@@ -113,42 +119,25 @@ namespace ShadowWall
 			RecordFileStream.Write(Encoding.UTF8.GetBytes(recordString), 0, byteCount);
 		}
 
-		IEnumerable<PointFrame> ConvertToPointCloud(ushort[] depths, int width, int height)
+		PointFrame[,] ConvertToPointCloud(ushort[] depths, int width, int height)
 		{
-			var points = new List<PointFrame>();
+			PointFrame[,] points = new PointFrame[width,height];
 
 			for (int i = 0; i < depths.Length; ++i)
 			{
 				var item = depths[i];
-				var x = (i % width) * this.WallWidth / (float)width;
-				var y = (height - i / width) * this.WallHeight / (float)height;
+				var x = (int)((i % width) * this.WallWidth / (float)width);
+				var y = (int)((height - i / width) * this.WallHeight / (float)height);
 				var z = item > 0 ? this.WallBreadth - (((float)item / (this.WallBreadth * 10)) * this.WallBreadth) : 0;
 
 				var b = item / 3;
 				var g = (item - b) / 3;
 				var r = (item - b - g) / 3;
 
-				points.Add(new PointFrame() { X = x, Y = y, Z = z, R = (byte)r, G = (byte)g, B = (byte)b });
+				points[x, y] = new PointFrame() { X = x, Y = y, Z = z, R = (byte)r, G = (byte)g, B = (byte)b };
 			}
 
 			return points;
-		}
-
-		void snapshotButton_Click(object sender, EventArgs e)
-		{
-			IEnumerable<PointFrame> cloudToSave;
-			lock (currentCloudLock)
-			{
-				cloudToSave = CurrentCloud.ToArray();
-			}
-			Task.Factory.StartNew(() =>
-			{
-				var serializer = new Serializer(snapshotsTaken++.ToString());
-				foreach (var point in cloudToSave)
-				{
-					serializer.Save((int)point.X, (int)point.Y, (int)point.Z, (byte)point.R, (byte)point.G, (byte)point.B);
-				}
-			});
 		}
 
 		void recordButton_Click(object sender, EventArgs e)
@@ -235,7 +224,6 @@ namespace ShadowWall
 		public int WallWidth { get { return 180; } }
 		public int WallHeight { get { return 120; } }
 		public int WallBreadth { get { return 800; } }
-		public IEnumerable<PointFrame> CurrentCloud { get; private set; }
 		public string RecordButtonContent
 		{
 			get
@@ -262,13 +250,6 @@ namespace ShadowWall
 		bool isRecording = false;
 		Stream RecordFileStream { get; set; }
 		int recordingsMade = 0;
-
-		#endregion
-
-		#region Snapshot state
-
-		object currentCloudLock = new object();
-		int snapshotsTaken = 0;
 
 		#endregion
 

@@ -4,6 +4,6 @@ namespace ShadowWall
 {
 	public interface IPointCloudFilter
 	{
-		void Apply(IEnumerable<PointFrame> currentCloud);
+		PointFrame[,] Apply(PointFrame[,] currentCloud);
 	}
 }

@@ -1,40 +1,43 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ShadowWall
 {
 	class AgingFilter : IPointCloudFilter
 	{
-		public void Apply(IEnumerable<PointFrame> currentCloud)
+		public PointFrame[,] Apply(PointFrame[,] currentCloud)
 		{
-			if (previousCloud == null || previousCloud.Count() != currentCloud.Count())
+			if (previousCloud == null)
 			{
-				previousCloud = new List<PointFrame>(currentCloud).ToArray();
-				return;
+				previousCloud = new PointFrame[currentCloud.GetLength(0), currentCloud.GetLength(1)];
 			}
 
-			var index = 0;
-			foreach (var currentPoint in currentCloud)
+			var resultCloud = new PointFrame[currentCloud.GetLength(0), currentCloud.GetLength(1)];
+			if (previousCloud.Length != currentCloud.Length)
 			{
-				var previousPoint = previousCloud[index];
-				if (currentPoint.Z < previousPoint.Z - minimumDelta || previousPoint.Z + minimumDelta < currentPoint.Z)
-				{
-					previousPoint.Z = currentPoint.Z;
-				}
-				else
-				{
-					currentPoint.R = Math.Max(previousPoint.R - agingFactor, 1);
-					currentPoint.G = Math.Max(previousPoint.G - agingFactor, 1);
-					currentPoint.B = Math.Max(previousPoint.B - agingFactor, 1);
-				}
-
-				previousPoint.R = currentPoint.R;
-				previousPoint.G = currentPoint.G;
-				previousPoint.B = currentPoint.B;
-
-				++index;
+				Array.Copy(currentCloud, resultCloud, currentCloud.Length);
 			}
+			else
+			{
+				for (var i = 0; i < currentCloud.GetLength(0); ++i)
+				{
+					for (var j = 0; j < currentCloud.GetLength(1); ++j)
+					{
+						var currentPoint = currentCloud[i, j];
+						var previousPoint = previousCloud[i, j];
+						var resultPoint = new PointFrame(currentPoint);
+
+						if (!(currentPoint.Z < previousPoint.Z - minimumDelta || previousPoint.Z + minimumDelta < currentPoint.Z))
+						{
+							resultPoint.R = Math.Max(previousPoint.R - agingFactor, 1);
+							resultPoint.G = Math.Max(previousPoint.G - agingFactor, 1);
+							resultPoint.B = Math.Max(previousPoint.B - agingFactor, 1);
+						}
+					}
+				}
+			}
+
+			Array.Copy(resultCloud, previousCloud, resultCloud.Length);
+			return resultCloud;
 		}
 
 		#region Parameters
@@ -42,6 +45,6 @@ namespace ShadowWall
 		int agingFactor = 10;
 		#endregion
 
-		PointFrame[] previousCloud;
+		PointFrame[,] previousCloud;
 	}
 }
