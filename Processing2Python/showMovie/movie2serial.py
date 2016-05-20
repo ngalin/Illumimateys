@@ -18,7 +18,7 @@ TARGET_FRAME_RATE = 30
 REMOVE_BACKGROUND = False
 
 CAPTURE_SIZE = (1920, 1080)
-PREVIEW_SIZE = (CAPTURE_SIZE[0] / 4, CAPTURE_SIZE[1] / 4)
+PREVIEW_SIZE = (CAPTURE_SIZE[0]/4, CAPTURE_SIZE[1]/4)
 
 led_serial = []
 led_image = []
@@ -27,8 +27,7 @@ led_layout = []
 
 PANEL_WIDTH = 180
 PANEL_HEIGHT = 120
-DUMMY_COL_INDICES = list(range(24, 24 + 16, 4))
-
+DUMMY_COL_INDICES = list(range(24, 24+16, 4))
 
 # ask a Teensy board for its LED configuration, and set up the info for it.
 def serial_configure(port_name, port_num):
@@ -38,12 +37,12 @@ def serial_configure(port_name, port_num):
 
     print 'Port name ' + port_name
 
-    led_serial.append(serial.Serial(port_name, baudrate=115200, timeout=1)) #checking if can increase tx by increasing baudrate
+    led_serial.append(serial.Serial(port_name, timeout=1))
     if led_serial[port_num] is None:
         print 'portName: ', port_name, ' returned null'
         return
 
-    time.sleep(500 / 1000.0)
+    time.sleep(500 / 1000.0)  # sleep for 50ms
 
     led_serial[port_num].write('?')
 
@@ -63,14 +62,13 @@ def serial_configure(port_name, port_num):
     # only store the info and increase numPorts if Teensy responds properly
     led_image.append(np.zeros((int(params[0]), int(params[1]), 3), np.uint8))
     # Note: rows and cols are according to the teensy, which is configured to be mounted rotated π/2
-    # print 'Panel: ', port_num, ' cols: ', params[0], ' rows: ', params[1]
+    #print 'Panel: ', port_num, ' cols: ', params[0], ' rows: ', params[1]
     rect = MyRectangle((int(params[5]), int(params[6])), int(params[7]), int(params[8]))
     led_area.append(rect)
 
-    # print 'xoff: ', params[5], ' yoff: ', params[6], ' width: ', params[7], '%, height: ', params[8], '%'
+    #print 'xoff: ', params[5], ' yoff: ', params[6], ' width: ', params[7], '%, height: ', params[8], '%'
 
     led_layout.append(int(params[2]))
-
 
 def initialise_serial_ports():
     ports = glob.glob('/dev/tty.usbmodem*')
@@ -82,11 +80,9 @@ def initialise_serial_ports():
         serial_configure(port, idx)
     return idx + 1
 
-
 def close_all_ports(num_ports):
     for i in range(0, num_ports):
         led_serial[i].close()
-
 
 def send_frame_to_led_panels(frame, num_ports):
     # Resize to exact dimensions of panels, adding in dummy columns
@@ -106,6 +102,7 @@ def send_frame_to_led_panels(frame, num_ports):
         led_data = hp.image_to_data(led_image[teensy_idx], led_layout[teensy_idx])
 
         # send byte data to Teensys:
+       # if teensy_idx == 0:
         led_data[0] = '*'  # first Teensy is the frame sync master
         usec = int((1000000.0 / TARGET_FRAME_RATE) * 0.75)
         led_data[1] = (usec) & 0xff  # request the frame sync pulse
@@ -117,10 +114,9 @@ def send_frame_to_led_panels(frame, num_ports):
 
         led_serial[teensy_idx].write(bytes(led_data))
 
-
 def open_camera():
     print "Opening capture from camera at", CAPTURE_SIZE
-    cap = cv2.VideoCapture(0)  # this may change (0 or 1) depending on how camera enumerates
+    cap = cv2.VideoCapture(0)
     cap.set(cv2.cv.CV_CAP_PROP_FPS, 30)
     cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, CAPTURE_SIZE[0])
     cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, CAPTURE_SIZE[1])
@@ -128,13 +124,11 @@ def open_camera():
     # cap.set(cv2.cv.CV_CAP_PROP_EXPOSURE, 1)
     return cap
 
-
 def open_file(path):
     print "Opening capture from", path
     cap = cv2.VideoCapture(path)
     cap.set(cv2.cv.CV_CAP_PROP_FPS, 30)
     return cap
-
 
 def main(argv):
     #filename = "/Users/ngalin/Desktop/TestVivid/SampleVideo_360x240_1mb.mp4"
@@ -149,26 +143,28 @@ def main(argv):
         filename = argv[0]
 
     defish = False
+    crop = (306, 204) # w, h
     if filename:
         cap = open_file(filename)
     else:
         cap = open_camera()
         defish = True
+        crop = ()
     if not cap.isOpened:
         print "Failed to open capture"
         return
 
     print "Initialising pipeline"
-    pipeline = Pipeline(defish)
+    pipeline = Pipeline(defish, crop)
 
     print "Initialising serial ports"
     num_ports = initialise_serial_ports()
     print "Initialised", num_ports, "ports"
 
     # Open a preview window
-    cv2.namedWindow("preview")
-    cv2.namedWindow("panels")
+    cv2.namedWindow("capture")
     cv2.namedWindow("debug")
+    cv2.namedWindow("panels")
 
     tstart = time.time()
     have_frame, frame = cap.read()
@@ -196,7 +192,7 @@ def main(argv):
         frame = hp.zoom_frame(frame, 1)
 
         preview_frame = cv2.resize(frame, PREVIEW_SIZE)
-        cv2.imshow("preview", preview_frame)
+        cv2.imshow("capture", preview_frame)
 
         if REMOVE_BACKGROUND:
             frame = fgbg.apply(frame)
