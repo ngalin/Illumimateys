@@ -15,8 +15,6 @@ import check_panel_time
 MAX_NUM_PORTS = 24
 TARGET_FRAME_RATE = 30
 
-REMOVE_BACKGROUND = False
-
 CAPTURE_SIZE = (1920, 1080)
 PREVIEW_SIZE = (CAPTURE_SIZE[0]/4, CAPTURE_SIZE[1]/4)
 
@@ -42,10 +40,8 @@ def serial_configure(port_name, port_num):
         print 'portName: ', port_name, ' returned null'
         return
 
-    time.sleep(500 / 1000.0)  # sleep for 50ms
-
+    time.sleep(500 / 1000.0)
     led_serial[port_num].write('?')
-
     line = led_serial[port_num].readline()
     print line
 
@@ -131,25 +127,20 @@ def open_file(path):
     return cap
 
 def main(argv):
-    #filename = "/Users/ngalin/Desktop/TestVivid/SampleVideo_360x240_1mb.mp4"
-    #filename = "/Users/ngalin/Desktop/TestVivid/Movie on 8-05-2016 at 19.13.mov"
-    # filename = "/Users/ngalin/Dropbox/Alex & Nat (1)/Shadow wall/shadowwall-test-1.mp4"
-    filename = "/Users/ngalin/Desktop/TestVivid/Movie on 13-05-2016 at 20.11.mov"
-
-    #filename = "/Users/ngalin/Desktop/Videos/penrose.mp4"
-    #filename = None
-
+    filename = None
     if argv:
         filename = argv[0]
 
     defish = False
+    needs_release = False
     crop = (306, 204) # w, h
     if filename:
         cap = open_file(filename)
     else:
         cap = open_camera()
         defish = True
-        crop = ()
+        needs_release = True
+        crop = () # No crop
     if not cap.isOpened:
         print "Failed to open capture"
         return
@@ -171,13 +162,7 @@ def main(argv):
     framecount = 1
 
     # need to first draw all black frame:
-    black_frame = np.zeros((184, 120, 3), np.uint8)
-    black_frame[:] = (0, 0, 0)
-    send_frame_to_led_panels(black_frame, num_ports)
-    time.sleep(5)
-
-    # applying background subtraction
-    fgbg = cv2.BackgroundSubtractorMOG() #doesn't work very well....
+    send_black_frame(num_ports)
 
     while have_frame:
         #frame = cv2.imread("/Users/alex/Desktop/shadowwall-test-1.png")
@@ -189,22 +174,16 @@ def main(argv):
         #frame = cv2.imread("/Users/ngalin/Desktop/Videos/floatingSquares.jpg")
 
         frame = cv2.flip(frame, 1)
-        frame = hp.zoom_frame(frame, 1)
+        # frame = hp.zoom_frame(frame, 1)
 
         preview_frame = cv2.resize(frame, PREVIEW_SIZE)
         cv2.imshow("capture", preview_frame)
 
-        if REMOVE_BACKGROUND:
-            frame = fgbg.apply(frame)
-            # hack - make it color again
-            frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-
         frame = pipeline.process(frame)
-        if check_panel_time.check_time():
-
+        if check_panel_time.good_time_to_play():
             send_frame_to_led_panels(frame, num_ports)
         else:
-            send_frame_to_led_panels(black_frame, num_ports)
+            send_black_frame(num_ports)
 
         key = cv2.waitKey(1)
         if key == 27:  # exit on ESC
@@ -224,13 +203,20 @@ def main(argv):
 
     cv2.destroyWindow("preview")
     cv2.destroyWindow("panels")
-    cv2.release(cap) #release camera
+    if needs_release:
+        cv2.release(cap) #release camera
+
     # in case of some crash - set all LEDs to black before closing ports to Teensys
-    send_frame_to_led_panels(black_frame, num_ports)
+    send_black_frame(num_ports)
     time.sleep(1)
-    send_frame_to_led_panels(black_frame, num_ports)
+    send_black_frame(num_ports)
     close_all_ports(num_ports)
 
+
+def send_black_frame(num_ports):
+    black_frame = np.zeros((184, 120, 3), np.uint8)
+    black_frame[:] = (0, 0, 0)
+    send_frame_to_led_panels(black_frame, num_ports)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

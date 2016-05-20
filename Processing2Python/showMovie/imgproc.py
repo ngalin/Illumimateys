@@ -74,7 +74,7 @@ class Pipeline(object):
         ### Drawing (in colour)
         if not is_color:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        # draw_contours(img, contours)
+        draw_contours(img, contours)
 
         cv2.imshow("debug", img)
         return img
