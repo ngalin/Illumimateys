@@ -5,6 +5,7 @@ import numpy as np
 
 FISH_FOV = 180.0
 
+
 class Defisher(object):
     def __init__(self, src_size, dst_size, xmap, ymap):
         self.src_size = src_size

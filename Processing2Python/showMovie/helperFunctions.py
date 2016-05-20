@@ -1,14 +1,16 @@
 import numpy as np
 import cv2
 
-gamma = 2.8#1.7
+gamma = 2.8  # 1.7
 gamma_table = [int(((i / 255.0) ** gamma) * 255.0 + 0.5) for i in range(256)]
+
 
 def bgr2grb(blue, green, red):
     blue = gamma_table[blue]
     green = gamma_table[green]
     red = gamma_table[red]
     return (green << 16) | (red << 8) | blue
+
 
 # image2data converts an image to OctoWS2811's raw data format.
 # The number of vertical pixels in the image must be a multiple
@@ -17,7 +19,7 @@ def image_to_data(image, strip_layout_direction):
     byte_array = bytearray(11523)
     offset = 3
     height, width, depth = image.shape
-    image = cv2.flip(image,1)
+    image = cv2.flip(image, 1)
 
     lines_per_pin = width / 8
 
@@ -35,7 +37,7 @@ def image_to_data(image, strip_layout_direction):
             xbegin = height - 1  # image.width - 1
             xend = -1
             xinc = -1
-        #print 'xbeing: ' + str(xbegin) + ' xend: ' + str(xend) + ' xinc: ' + str(xinc)
+        # print 'xbeing: ' + str(xbegin) + ' xend: ' + str(xend) + ' xinc: ' + str(xinc)
         for x in range(xbegin, xend, xinc):
             pixels = [0] * 8
             for i in range(0, 8):  # fetch 8 pixels from the image, 1 for each strip
@@ -69,7 +71,9 @@ def add_dummy_columns(image, idx_dummy_columns):
         b = np.insert(b, idx_dummy_columns[i], np.zeros(height), axis=1)
         g = np.insert(g, idx_dummy_columns[i], np.zeros(height), axis=1)
         r = np.insert(r, idx_dummy_columns[i], np.zeros(height), axis=1)
+
     return cv2.merge((b, g, r))
+
 
 def resize(frame, width, height, extra_columns_idxs):
     res = cv2.resize(frame, (width, height))
@@ -78,3 +82,15 @@ def resize(frame, width, height, extra_columns_idxs):
         res = add_dummy_columns(res, extra_columns_idxs)
     # print res.shape  # now image size should be 184x120
     return res
+
+
+def zoom_frame(frame, scale):
+    height, width, depth = frame.shape
+
+    new_frame = frame
+    for i in range(0, scale):
+        new_frame = cv2.pyrUp(new_frame)
+        # new_frame = new_frame[height / 2:height / 2 + height, width / 2:width / 2 + width, :]
+        new_frame = new_frame[height:height+height, width / 2:width / 2 + width, :]
+
+    return new_frame

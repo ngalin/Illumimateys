@@ -4,19 +4,33 @@ import cv2
 import numpy as np
 
 THRESHOLD = int(255 * 0.7)
+MIN_CONTOUR_AREA = 10
 
 # Observed framing of the camera I used
-right_crop = 178+10
-left_crop = 216+10
+right_crop = 178 + 10
+left_crop = 216 + 10
 diameter = 1920 - (left_crop + right_crop)
 vshift = 40
 top_margin = ((diameter - 1080) / 2) + vshift
 bottom_margin = ((diameter - 1080) / 2) - vshift
 
+
+def contours_to_plot(contours):
+    contours_ = []
+
+    for i in range(0, len(contours)):
+        if cv2.contourArea(contours[i]) > 500:
+            contours_.append(contours[i])
+
+            # print cv2.contourArea(contours[i])
+
+    return contours_
+
+
 class Pipeline(object):
     def __init__(self, defish):
         if defish:
-            self.defisher = create_fisher((diameter,diameter), (1080,1080))
+            self.defisher = create_fisher((diameter, diameter), (1080, 1080))
         else:
             self.defisher = None
 
@@ -31,8 +45,7 @@ class Pipeline(object):
 
             img = self.defisher.unwarp(img)
             # cv2.imwrite("defished.jpg", img)
-            img = cv2.resize(img, (img.shape[1]/2, img.shape[0]/2))
-
+            img = cv2.resize(img, (img.shape[1] / 2, img.shape[0] / 2))
 
         # ok, img = cv2.threshold(img, THRESHOLD, 255, cv2.THRESH_BINARY)
 
@@ -50,17 +63,25 @@ class Pipeline(object):
         # Morph close to fill dark holes
         img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, morph_kernel, iterations=3)
 
-        edges = cv2.Canny(img, 20, 40)
-        edges = cv2.GaussianBlur(edges, (7, 7), 0)
-        # img = edges
+        edges = cv2.Canny(img, 10, 70) #20,40
+        #edges = cv2.GaussianBlur(edges, (7, 7), 0)
+        edges = cv2.GaussianBlur(edges, (3, 3), 0)
+        img = edges
 
         contours, hchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        cv2.drawContours(img, contours, -1, (0,255,0), -1)
+
+        contours = contours_to_plot(contours)
+        cv2.drawContours(img,contours, -1, (0,255,0), -1)
+        #cv2.drawContours(img, contours[i], -1, (0,255,0), -1)
 
 
         # Convert back to colour (we'll replace this with colorising later.
         # img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
+        #edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+
         cv2.imshow("debug", img)
         return img
 
