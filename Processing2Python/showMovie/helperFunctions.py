@@ -78,8 +78,7 @@ def image_to_data_fast(image, strip_layout_direction):
 
     for y in range(0, rows_per_pin):
         # Even strips are indexed forward, odd strips backwards.
-        forward = (y % 2) != strip_layout_direction
-        if forward:
+        if (y % 2) != strip_layout_direction:
             xbegin = 0
             xend = height
             xinc = 1
@@ -105,7 +104,7 @@ def image_to_data_fast(image, strip_layout_direction):
     tend = time.time()
     # print (tend-tstart)*1000
     bytearr = bytearray(all_bits.tobytes())
-    assert len(bytearr) == 11523
+    # assert len(bytearr) == 11523 # not true for the last teensy
     return bytearr
 
 

@@ -107,7 +107,7 @@ def send_frame_to_led_panels(frame, num_ports):
         theight = led_area[teensy_idx].height
 
         # determine what portion of frame to send to given Teensy:
-        led_image[teensy_idx] = np.copy(frame[yoffset:yoffset + theight, xoffset:xoffset + twidth, :])
+        led_image[teensy_idx] = frame[yoffset:yoffset + theight, xoffset:xoffset + twidth, :]
         led_data = hp.image_to_data_fast(led_image[teensy_idx], led_layout[teensy_idx])
         # verify_led_data(teensy_idx, led_data)
 
@@ -120,6 +120,7 @@ def send_frame_to_led_panels(frame, num_ports):
         led_serial[teensy_idx].write(bytes(led_data))
 
 def verify_led_data(teensy_idx, led_data):
+    if teensy_idx > 4: return
     led_data_orig = hp.image_to_data_original(led_image[teensy_idx], led_layout[teensy_idx])
     if led_data != led_data_orig:
         print(repr(led_data_orig))
