@@ -85,9 +85,9 @@ class Pipeline(object):
         ### Drawing (in colour)
         if not is_color:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        draw_contours(img, contours)
-        draw_rectangles(img, contours) #better identifies individual contours - allows to easily detect 'bottom' of contour for future 'moving down the screen'
-        bottom_of_contour(img, contours)
+        # draw_contours(img, contours)
+        # draw_rectangles(img, contours) #better identifies individual contours - allows to easily detect 'bottom' of contour for future 'moving down the screen'
+        # bottom_of_contour(img, contours)
 
         cv2.imshow("debug", img)
         return img
@@ -115,10 +115,17 @@ class BackgroundRejecterAvg(object):
         if self.avg is None:
             self.avg = np.float32(frame)
 
-        cv2.accumulateWeighted(frame, self.avg, 0.001)
+        cv2.accumulateWeighted(frame, self.avg, 0.003)
         res = cv2.convertScaleAbs(self.avg)
         cv2.imshow("bg", res)
-        frame = frame - res #consider normalising images before subtraction...
+
+        # Method 1: reject by subtraction. Avoids hard boundaries, only works well when background is dark.
+        res = np.minimum(res, frame)
+        frame = frame - res
+
+        # Method 2: reject by masking. Leaves more information but creates hard "glow" boundaries at threshold
+        # mask = np.abs(frame - res) > 10
+        # frame = np.where(mask, frame, 0)
         return frame
 
 def morph_cleanup(img):

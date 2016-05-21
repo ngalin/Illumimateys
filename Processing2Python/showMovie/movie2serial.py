@@ -205,9 +205,10 @@ def main(argv):
 
         cv2.imshow("capture", cv2.resize(frame, PREVIEW_SIZE))
 
-        frame = cv2.flip(frame, 1)
-
         frame = pipeline.process(frame)
+        frame = cv2.flip(frame, 1)
+        tproc = time.time()
+
         if check_panel_time.good_time_to_play():
             send_frame_to_led_panels(frame, num_ports)
         else:
@@ -219,8 +220,11 @@ def main(argv):
 
         tend = time.time()
         if framecount % TARGET_FRAME_RATE == 0:
+            proc_duration = (tproc - tstart)
+            send_duration = (tend - tproc)
             duration = (tend - tstart)
-            print "Frame took", duration * 1000, "ms,", (1 / duration), "fps"
+            print "Frame took", duration*1000, "ms,", proc_duration*1000, "proc,", \
+                send_duration*1000, "send,", (1 / duration), "fps"
         tstart = time.time()
         have_frame, frame = cap.read()
         framecount += 1
