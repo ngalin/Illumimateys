@@ -9,6 +9,7 @@ import glob
 import time
 from MyRectangle import MyRectangle
 import helperFunctions as hp
+from concurrent.futures import ThreadPoolExecutor
 from showMovie.imgproc import Pipeline
 import check_panel_time
 
@@ -30,6 +31,8 @@ led_layout = []
 PANEL_WIDTH = 180
 PANEL_HEIGHT = 120
 DUMMY_COL_INDICES = list(range(24, 24+16, 4))
+
+send_executor = ThreadPoolExecutor(1)
 
 FAKE_PORTS = ['/fake/1', '/fake/2', '/fake/3', '/fake/4', '/fake/5', '/fake/6']
 class FakeSerial(object):
@@ -117,7 +120,9 @@ def send_frame_to_led_panels(frame, num_ports):
         led_data[1] = (usec) & 0xff  # request the frame sync pulse
         led_data[2] = (usec >> 8) & 0xff  # at 75% of the frame time
 
-        led_serial[teensy_idx].write(bytes(led_data))
+        def write(idx, data):
+            led_serial[idx].write(data)
+        send_executor.submit(write, teensy_idx, bytes(led_data))
 
 def verify_led_data(teensy_idx, led_data):
     if teensy_idx > 4: return
@@ -250,6 +255,7 @@ def main(argv):
     send_black_frame(num_ports)
     time.sleep(1)
     send_black_frame(num_ports)
+    send_executor.shutdown(wait=True)
     close_all_ports(num_ports)
 
 

@@ -119,7 +119,7 @@ def morph_cleanup(img):
     ### Morphological cleanup
     # http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_imgproc/py_morphological_ops/py_morphological_ops.html
     # http://stackoverflow.com/questions/29104091/morphological-reconstruction-in-opencv
-    morph_kernel = np.ones((5, 5), np.uint8)
+    morph_kernel = np.ones((3, 3), np.uint8)
 
     # img = cv2.erode(img, morph_kernel)
     # img = cv2.dilate(img, morph_kernel)
@@ -133,11 +133,12 @@ def morph_cleanup(img):
 
 def find_contours(img):
     #when doing edge detection, remove/denoise image first, then apply Canny
-    img = cv2.GaussianBlur(img, (5, 5), 0)
-    #edges = cv2.Canny(img, 20, 40)
-    edges = cv2.Canny(img, 100, 200)
-    #edges = cv2.GaussianBlur(edges, (5, 5), 0) #consider blurring again, after edge detection
-    #img = edges
+    # img = cv2.GaussianBlur(img, (5, 5), 0)
+    # edges = cv2.Canny(img, 100, 200)
+
+    # Contours appropriate for filling with colour
+    edges = cv2.Canny(img, 20, 40)
+    edges = cv2.GaussianBlur(edges, (5, 5), 0) #consider blurring again, after edge detection
 
     contours, hchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     return contours
