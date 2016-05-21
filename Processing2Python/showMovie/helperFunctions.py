@@ -128,15 +128,3 @@ def resize(frame, width, height, extra_columns_idxs):
         res = add_dummy_columns(res, extra_columns_idxs)
     # print res.shape  # now image size should be 184x120
     return res
-
-
-def zoom_frame(frame, scale):
-    height, width, depth = frame.shape
-
-    new_frame = frame
-    for i in range(0, scale):
-        new_frame = cv2.pyrUp(new_frame)
-        # new_frame = new_frame[height / 2:height / 2 + height, width / 2:width / 2 + width, :]
-        new_frame = new_frame[height:height+height, width / 2:width / 2 + width, :]
-
-    return new_frame

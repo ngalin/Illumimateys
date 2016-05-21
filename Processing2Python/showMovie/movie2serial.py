@@ -16,6 +16,9 @@ FAKE_SERIAL = True
 MAX_NUM_PORTS = 24
 TARGET_FRAME_RATE = 30
 
+BACKGROUND_DET_AVG = False
+BACKGROUND_DET_MOG = False
+
 CAPTURE_SIZE = (1920, 1080)
 PREVIEW_SIZE = (CAPTURE_SIZE[0]/4, CAPTURE_SIZE[1]/4)
 
@@ -139,6 +142,9 @@ def open_file(path):
     cap.set(cv2.cv.CV_CAP_PROP_FPS, 30)
     return cap
 
+# Notes:
+# - consider reading in grayscale frame straight away
+
 def main(argv):
     filename = None
     if argv:
@@ -174,6 +180,15 @@ def main(argv):
     have_frame, frame = cap.read()
     framecount = 1
 
+    if BACKGROUND_DET_AVG:
+        avg = np.float32(frame) #part of background detection
+    elif BACKGROUND_DET_MOG:
+        # length_history = 100
+        # number_gaussian_mixtures = 6
+        # background_ratio = 0.9
+        # noise_strength_sigma = 1
+        fgbg = cv2.BackgroundSubtractorMOG()#history=200, nmixtures=6, backgroundRatio=0.1, noiseSigma=1)
+
     # need to first draw all black frame:
     send_black_frame(num_ports)
 
@@ -186,8 +201,19 @@ def main(argv):
 #        frame = cv2.imread("/Users/ngalin/Desktop/Videos/shadowLight.jpg") #not too good - too dark?
         #frame = cv2.imread("/Users/ngalin/Desktop/Videos/floatingSquares.jpg")
 
-        frame = cv2.flip(frame, 1)
-        # frame = hp.zoom_frame(frame, 1)
+        if BACKGROUND_DET_AVG:
+            cv2.accumulateWeighted(frame, avg, 0.1)
+            res = cv2.convertScaleAbs(avg)
+            cv2.imshow("background", res)
+            frame = cv2.flip(frame - res, 1) #consider normalising images before subtraction...
+        elif BACKGROUND_DET_MOG:
+            frame = cv2.flip(frame, 1)
+            fgmask = fgbg.apply(frame)
+            fgmask = cv2.cvtColor(fgmask, cv2.COLOR_GRAY2BGR)
+            frame = frame & fgmask
+            cv2.imshow("background removed",frame)
+        else:
+            frame = cv2.flip(frame, 1)
 
         preview_frame = cv2.resize(frame, PREVIEW_SIZE)
         cv2.imshow("capture", preview_frame)

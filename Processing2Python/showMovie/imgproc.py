@@ -5,6 +5,7 @@ from showMovie.defish import create_fisher
 import cv2
 import numpy as np
 from showMovie.helperFunctions import make_gamma_table
+from perspective_transform import four_point_transform
 
 THRESHOLD = int(255 * 0.7)
 MIN_CONTOUR_AREA = 10
@@ -36,6 +37,7 @@ class Pipeline(object):
 
     def process(self, img):
         shape = img.shape
+
         if self.crop:
             xmargin = shape[1] - self.crop[0]
             ymargin = shape[0] - self.crop[1]
@@ -44,7 +46,12 @@ class Pipeline(object):
             croprect = slice(0, shape[0]), slice(0, shape[1])
 
         # img = transform_perspective(img, croprect) # or
-        img = img[croprect[0], croprect[1]]
+        #img = img[croprect[0], croprect[1]]
+
+        #these coords need tweaking....currently dep on shape of img from movie
+        #nats perspective transform:
+        pts = np.array([(0,200), (640, 200), (500, 426), (140, 426)], dtype = "float32")
+        img = four_point_transform(img, pts)
 
         # Simplify to grayscale for processing
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -75,6 +82,8 @@ class Pipeline(object):
         if not is_color:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         draw_contours(img, contours)
+        draw_rectangles(img, contours) #better identifies individual contours - allows to easily detect 'bottom' of contour for future 'moving down the screen'
+        bottom_of_contour(img, contours)
 
         cv2.imshow("debug", img)
         return img
@@ -123,9 +132,12 @@ def morph_cleanup(img):
     return img
 
 def find_contours(img):
-    edges = cv2.Canny(img, 20, 40)
-    edges = cv2.GaussianBlur(edges, (5, 5), 0)
-    # img = edges
+    #when doing edge detection, remove/denoise image first, then apply Canny
+    img = cv2.GaussianBlur(img, (5, 5), 0)
+    #edges = cv2.Canny(img, 20, 40)
+    edges = cv2.Canny(img, 100, 200)
+    #edges = cv2.GaussianBlur(edges, (5, 5), 0) #consider blurring again, after edge detection
+    #img = edges
 
     contours, hchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     return contours
@@ -176,3 +188,21 @@ def local_max(img):
     mask = cv2.dilate(img, kernel)
     result = cv2.compare(img, mask, cv2.CMP_GE)
     return result
+
+def draw_rectangles(img, contours):
+    #draw the bounding rectangles around contours
+    for i, ctr in enumerate(contours):
+        x, y, w, h = cv2.boundingRect(ctr)
+        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+def bottom_of_contour(img, contours):
+    bottom_x = []
+    bottom_y = []
+    #get the bounding rectangles around contours
+    for i, ctr in enumerate(contours):
+        x, y, w, h = cv2.boundingRect(ctr)
+        bottom_x.append(x + w/2)
+        bottom_y.append(y + h)
+        cv2.circle(img,(int(bottom_x[i]),int(bottom_y[i])),3,(255,0,0))
+
+    return zip(bottom_x, bottom_y)
