@@ -21,7 +21,7 @@ bottom_margin = ((diameter - 1080) / 2) - vshift
 gammatable = np.array(make_gamma_table(0.7), dtype=np.uint8)
 
 class Pipeline(object):
-    def __init__(self, defish, crop=()):
+    def __init__(self, defish, crop=(), bg=None):
         """
         :param defish: whether to defish
         :param crop: (width, height) for bottom-centre crop
@@ -32,6 +32,7 @@ class Pipeline(object):
         else:
             self.defisher = None
         self.crop = crop
+        self.bg = bg
         self.prev_grey_img = None
         self.flowstate = None
 
@@ -45,17 +46,20 @@ class Pipeline(object):
         else:
             croprect = slice(0, shape[0]), slice(0, shape[1])
 
-        # img = transform_perspective(img, croprect) # or
-        #img = img[croprect[0], croprect[1]]
+        # Crop as early as possible for performance. We might downsize as well if needed.
+        img = img[croprect[0], croprect[1]]
 
         #these coords need tweaking....currently dep on shape of img from movie
         #nats perspective transform:
-        pts = np.array([(0,200), (640, 200), (500, 426), (140, 426)], dtype = "float32")
-        img = four_point_transform(img, pts)
+        # pts = np.array([(0,200), (640, 200), (500, 426), (140, 426)], dtype = "float32")
+        # img = four_point_transform(img, pts)
 
         # Simplify to grayscale for processing
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         is_color = False
+
+        if self.bg:
+            img = self.bg.process(img)
 
         if self.defisher:
             img = img[0:1080, left_crop:-right_crop]
@@ -89,31 +93,33 @@ class Pipeline(object):
         return img
 
 
-def transform_perspective(img, croprect):
-    # Croprect is (y, x)
-    # I don't know how to compute the rectangle. Possibly this could be combined with
-    # the cropping to do both at once, to get the right target frame size
-    # The target frame bounds as destination
-    dst_rect = np.array([
-        (croprect[0].start, croprect[1].start), # tl
-        (croprect[0].stop, croprect[1].start),  # bl
-        (croprect[0].stop, croprect[1].stop),   # br
-        (croprect[0].start, croprect[1].stop),  # tr
-    ], dtype=np.float32)
-    # Warped rectangle to project into the frame as src
-    shape = img.shape
-    src_rect = np.array([
-        (0,   0),
-        (shape[0],        0),
-        (shape[0],        shape[1]),
-        (0,   shape[1]),
-    ], dtype=np.float32)
+class BackgroundRejecterMog(object):
+    def __init__(self):
+        # length_history = 100
+        # number_gaussian_mixtures = 6
+        # background_ratio = 0.9
+        # noise_strength_sigma = 1
+        self.fgbg = cv2.BackgroundSubtractorMOG()#history=200, nmixtures=6, backgroundRatio=0.1, noiseSigma=1)
 
-    pmat = cv2.getPerspectiveTransform(src_rect, dst_rect)
-    size = (croprect[1].stop,croprect[0].stop)
-    warped = cv2.warpPerspective(img, pmat, size)
-    return warped
+    def process(self, frame):
+        fgmask = self.fgbg.apply(frame)
+        cv2.imshow("bg", fgmask)
+        frame = frame & fgmask
+        return frame
 
+class BackgroundRejecterAvg(object):
+    def __init__(self, frame=None):
+        self.avg = np.float32(frame) if frame else None
+
+    def process(self, frame):
+        if self.avg is None:
+            self.avg = np.float32(frame)
+
+        cv2.accumulateWeighted(frame, self.avg, 0.001)
+        res = cv2.convertScaleAbs(self.avg)
+        cv2.imshow("bg", res)
+        frame = frame - res #consider normalising images before subtraction...
+        return frame
 
 def morph_cleanup(img):
     ### Morphological cleanup

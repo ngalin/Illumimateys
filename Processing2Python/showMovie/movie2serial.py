@@ -10,15 +10,13 @@ import time
 from MyRectangle import MyRectangle
 import helperFunctions as hp
 from concurrent.futures import ThreadPoolExecutor
-from showMovie.imgproc import Pipeline
+from showMovie.imgproc import Pipeline, BackgroundRejecterMog, BackgroundRejecterAvg
 import check_panel_time
 
 FAKE_SERIAL = True
 MAX_NUM_PORTS = 24
 TARGET_FRAME_RATE = 30
-
-BACKGROUND_DET_AVG = False
-BACKGROUND_DET_MOG = False
+TEENSY_SYNC = False
 
 CAPTURE_SIZE = (1920, 1080)
 PREVIEW_SIZE = (CAPTURE_SIZE[0]/4, CAPTURE_SIZE[1]/4)
@@ -115,10 +113,16 @@ def send_frame_to_led_panels(frame, num_ports):
         # verify_led_data(teensy_idx, led_data)
 
         # send byte data to Teensys:
-        led_data[0] = '*'  # first Teensy is the frame sync master
-        usec = int((1000000.0 / TARGET_FRAME_RATE) * 0.75)
-        led_data[1] = (usec) & 0xff  # request the frame sync pulse
-        led_data[2] = (usec >> 8) & 0xff  # at 75% of the frame time
+        if TEENSY_SYNC or teensy_idx == 0:
+            led_data[0] = '*'  # first Teensy is the frame sync master
+            usec = int((1000000.0 / TARGET_FRAME_RATE) * 0.75)
+            led_data[1] = (usec) & 0xff  # request the frame sync pulse
+            led_data[2] = (usec >> 8) & 0xff  # at 75% of the frame time
+        else:
+            led_data[0] = '%'  # others sync to the master board
+            led_data[1] = 0
+            led_data[2] = 0
+
 
         def write(idx, data):
             led_serial[idx].write(data)
@@ -158,7 +162,8 @@ def main(argv):
 
     defish = False
     needs_release = False
-    crop = (306, 204) # w, h
+    # crop = (306, 204) # w, h
+    crop = (918, 612)
     if filename:
         cap = open_file(filename)
     else:
@@ -171,7 +176,7 @@ def main(argv):
         return
 
     print "Initialising pipeline"
-    pipeline = Pipeline(defish, crop)
+    pipeline = Pipeline(defish, crop=crop, bg=BackgroundRejecterAvg())
 
     print "Initialising serial ports"
     num_ports = initialise_serial_ports(fake=FAKE_SERIAL)
@@ -186,15 +191,6 @@ def main(argv):
     have_frame, frame = cap.read()
     framecount = 1
 
-    if BACKGROUND_DET_AVG:
-        avg = np.float32(frame) #part of background detection
-    elif BACKGROUND_DET_MOG:
-        # length_history = 100
-        # number_gaussian_mixtures = 6
-        # background_ratio = 0.9
-        # noise_strength_sigma = 1
-        fgbg = cv2.BackgroundSubtractorMOG()#history=200, nmixtures=6, backgroundRatio=0.1, noiseSigma=1)
-
     # need to first draw all black frame:
     send_black_frame(num_ports)
 
@@ -207,22 +203,9 @@ def main(argv):
 #        frame = cv2.imread("/Users/ngalin/Desktop/Videos/shadowLight.jpg") #not too good - too dark?
         #frame = cv2.imread("/Users/ngalin/Desktop/Videos/floatingSquares.jpg")
 
-        if BACKGROUND_DET_AVG:
-            cv2.accumulateWeighted(frame, avg, 0.1)
-            res = cv2.convertScaleAbs(avg)
-            cv2.imshow("background", res)
-            frame = cv2.flip(frame - res, 1) #consider normalising images before subtraction...
-        elif BACKGROUND_DET_MOG:
-            frame = cv2.flip(frame, 1)
-            fgmask = fgbg.apply(frame)
-            fgmask = cv2.cvtColor(fgmask, cv2.COLOR_GRAY2BGR)
-            frame = frame & fgmask
-            cv2.imshow("background removed",frame)
-        else:
-            frame = cv2.flip(frame, 1)
+        cv2.imshow("capture", cv2.resize(frame, PREVIEW_SIZE))
 
-        preview_frame = cv2.resize(frame, PREVIEW_SIZE)
-        cv2.imshow("capture", preview_frame)
+        frame = cv2.flip(frame, 1)
 
         frame = pipeline.process(frame)
         if check_panel_time.good_time_to_play():
@@ -246,7 +229,8 @@ def main(argv):
             cap = open_file(filename)
             have_frame, frame = cap.read()
 
-    cv2.destroyWindow("preview")
+    cv2.destroyWindow("capture")
+    cv2.destroyWindow("debug")
     cv2.destroyWindow("panels")
     if needs_release:
         cv2.release(cap) #release camera
