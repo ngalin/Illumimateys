@@ -1,4 +1,5 @@
 # OpenCV? cp /usr/local/Cellar/opencv/2.4.11_1/lib/python2.7/site-packages/cv* env/lib/python2.7/site-packages/
 numpy==1.11.0
+bitarray==0.8.1
 bitstring==3.1.4
 pyserial==3.0.1

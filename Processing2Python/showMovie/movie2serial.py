@@ -105,20 +105,23 @@ def send_frame_to_led_panels(frame, num_ports):
 
         # determine what portion of frame to send to given Teensy:
         led_image[teensy_idx] = np.copy(frame[yoffset:yoffset + theight, xoffset:xoffset + twidth, :])
-        led_data = hp.image_to_data(led_image[teensy_idx], led_layout[teensy_idx])
+        led_data = hp.image_to_data_fast(led_image[teensy_idx], led_layout[teensy_idx])
+        # verify_led_data(teensy_idx, led_data)
 
         # send byte data to Teensys:
-       # if teensy_idx == 0:
         led_data[0] = '*'  # first Teensy is the frame sync master
         usec = int((1000000.0 / TARGET_FRAME_RATE) * 0.75)
         led_data[1] = (usec) & 0xff  # request the frame sync pulse
         led_data[2] = (usec >> 8) & 0xff  # at 75% of the frame time
-        # else:
-        #     led_data[0] = '%'  # others sync to the master board
-        #     led_data[1] = 0
-        #     led_data[2] = 0
 
         led_serial[teensy_idx].write(bytes(led_data))
+
+def verify_led_data(teensy_idx, led_data):
+    led_data_orig = hp.image_to_data_original(led_image[teensy_idx], led_layout[teensy_idx])
+    if led_data != led_data_orig:
+        print(repr(led_data_orig))
+        print(repr(led_data))
+        raise AssertionError
 
 def open_camera():
     print "Opening capture from camera at", CAPTURE_SIZE
