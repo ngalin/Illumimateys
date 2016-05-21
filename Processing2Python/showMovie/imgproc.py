@@ -10,6 +10,17 @@ from perspective_transform import four_point_transform
 THRESHOLD = int(255 * 0.7)
 MIN_CONTOUR_AREA = 10
 
+MORPH_KERNEL = np.ones((3, 3), np.uint8)
+
+COLOURS = colors = itertools.cycle([
+    (255, 100, 100),
+    (255, 255, 100),
+    (255, 100, 255),
+    (100, 255, 100),
+    (255, 100, 255),
+    (100, 100, 255),
+])
+
 # Observed framing of the camera I used
 right_crop = 178+10
 left_crop = 216+10
@@ -72,7 +83,14 @@ class Pipeline(object):
 
         ### Analysis (in greyscale)
         img = morph_cleanup(img)
+        # ret, img = cv2.threshold(img, 12, 255, cv2.THRESH_BINARY)
         contours = find_contours(img)
+
+        # Find connected components and watershed
+        # ret, markers = cv2.connectedComponents(img)
+        # markers = markers + 1
+        # markers[unknown == 255] = 0
+        # markers = cv2.watershed(img, markers)
 
         # brighter = cv2.LUT(img, gammatable)
         # img = brighter
@@ -85,7 +103,7 @@ class Pipeline(object):
         ### Drawing (in colour)
         if not is_color:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        # draw_contours(img, contours)
+        draw_contours(img, contours)
         # draw_rectangles(img, contours) #better identifies individual contours - allows to easily detect 'bottom' of contour for future 'moving down the screen'
         # bottom_of_contour(img, contours)
 
@@ -132,16 +150,20 @@ def morph_cleanup(img):
     ### Morphological cleanup
     # http://docs.opencv.org/3.0-beta/doc/py_tutorials/py_imgproc/py_morphological_ops/py_morphological_ops.html
     # http://stackoverflow.com/questions/29104091/morphological-reconstruction-in-opencv
-    morph_kernel = np.ones((3, 3), np.uint8)
 
     # img = cv2.erode(img, morph_kernel)
     # img = cv2.dilate(img, morph_kernel)
 
     # Morph open to remove noise
-    img = cv2.morphologyEx(img, cv2.MORPH_OPEN, morph_kernel, iterations=2)
+    # img = cv2.morphologyEx(img, cv2.MORPH_OPEN, morph_kernel, iterations=2)
 
     # Morph close to fill dark holes
-    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, morph_kernel, iterations=3)
+    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, MORPH_KERNEL, iterations=3)
+    img = cv2.erode(img, MORPH_KERNEL, iterations=2)
+
+    # For cool fuzzy edge-style shadow, use gradient
+    # img = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, MORPH_KERNEL)
+
     return img
 
 def find_contours(img):
@@ -150,10 +172,12 @@ def find_contours(img):
     # edges = cv2.Canny(img, 100, 200)
 
     # Contours appropriate for filling with colour
-    edges = cv2.Canny(img, 20, 40)
-    edges = cv2.GaussianBlur(edges, (5, 5), 0) #consider blurring again, after edge detection
+    # edges = cv2.Canny(img, 5, 15)
+    # edges = cv2.GaussianBlur(edges, (5, 5), 0) #consider blurring again, after edge detection
+    # contours, hchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
-    contours, hchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    ret, img = cv2.threshold(img, 12, 255, cv2.THRESH_BINARY)
+    contours, hch = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     return contours
 
 def compute_flow(previmg, img, prevflow):
@@ -193,9 +217,8 @@ def compute_flow(previmg, img, prevflow):
 def draw_contours(img, contours):
     # Draw and fill all contours
     # cv2.drawContours(img, contours, -1, (0, 255, 0), -1)
-    colors = itertools.cycle(itertools.product(*([(0, 255)] * 3)))
     for i, c in enumerate(contours):
-        cv2.drawContours(img, contours, i, next(colors), -1)
+        cv2.drawContours(img, contours, i, next(COLOURS), thickness=-1)
 
 def local_max(img):
     kernel = np.ones((40, 40), np.uint8)
