@@ -12,6 +12,7 @@ import helperFunctions as hp
 from showMovie.imgproc import Pipeline
 import check_panel_time
 
+FAKE_SERIAL = True
 MAX_NUM_PORTS = 24
 TARGET_FRAME_RATE = 30
 
@@ -27,15 +28,24 @@ PANEL_WIDTH = 180
 PANEL_HEIGHT = 120
 DUMMY_COL_INDICES = list(range(24, 24+16, 4))
 
+FAKE_PORTS = ['/fake/1', '/fake/2', '/fake/3', '/fake/4', '/fake/5', '/fake/6']
+class FakeSerial(object):
+    def readline(self):
+        return '120,32,0,0,0,152,0,32,120,0,0,0'
+    def write(self, b):
+        pass
+    def close(self):
+        pass
+
 # ask a Teensy board for its LED configuration, and set up the info for it.
-def serial_configure(port_name, port_num):
+def serial_configure(port_name, port_num, fake=False):
     if port_num >= MAX_NUM_PORTS:
         print 'Too many serial ports, please increase maxPorts'
         return
-
     print 'Port name ' + port_name
 
-    led_serial.append(serial.Serial(port_name, timeout=1))
+    port = FakeSerial() if fake else serial.Serial(port_name, timeout=1)
+    led_serial.append(port)
     if led_serial[port_num] is None:
         print 'portName: ', port_name, ' returned null'
         return
@@ -66,14 +76,14 @@ def serial_configure(port_name, port_num):
 
     led_layout.append(int(params[2]))
 
-def initialise_serial_ports():
-    ports = glob.glob('/dev/tty.usbmodem*')
+def initialise_serial_ports(fake=False):
+    ports = FAKE_PORTS if fake else glob.glob('/dev/tty.usbmodem*')
     print 'Serial Ports: '
     print ports
     idx = -1
 
     for idx, port in enumerate(ports):
-        serial_configure(port, idx)
+        serial_configure(port, idx, fake=fake)
     return idx + 1
 
 def close_all_ports(num_ports):
@@ -149,7 +159,7 @@ def main(argv):
     pipeline = Pipeline(defish, crop)
 
     print "Initialising serial ports"
-    num_ports = initialise_serial_ports()
+    num_ports = initialise_serial_ports(fake=FAKE_SERIAL)
     print "Initialised", num_ports, "ports"
 
     # Open a preview window
