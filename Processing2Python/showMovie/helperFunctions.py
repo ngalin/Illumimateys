@@ -87,9 +87,6 @@ def image_to_data_fast(image, strip_layout_direction):
     teensy_pins = 8
     rows_per_pin = width / teensy_pins
 
-    fwd_range = tuple(range(0, height, 1))
-    bwd_range = tuple(range(height-1, -1, -1))
-
     # The image is in BGR, roll the channel axis to get GRB
     image = np.roll(image, -1, axis=2)
 
@@ -97,33 +94,27 @@ def image_to_data_fast(image, strip_layout_direction):
 
     for y in range(0, rows_per_pin):
         # Even strips are indexed forward, odd strips backwards.
+        # Collect one pixel per teensy pin, 8 x 3 bytes (g, r, b), for each "height" row (1st dimension)
         if (y % 2) != strip_layout_direction:
-            rng = fwd_range
+            pixel_arrs = image[::, y:y + rows_per_pin * teensy_pins:rows_per_pin, :]
         else:
-            rng = bwd_range
-        for x in rng:
-            # Collect one pixel per teensy pin, 8 x 3 bytes (g, r, b)
-            t1 = time.time()
+            pixel_arrs = image[::-1, y:y+rows_per_pin*teensy_pins:rows_per_pin, :]
 
-            # fetch teensy_pins pixels from the image, 1 for each strip
-            pixel_arr = image[x, y:y+rows_per_pin*teensy_pins:rows_per_pin, :]
+        # Look up gamma-corrected LED values
+        pixel_arrs = led_table_np[pixel_arrs]
 
-            # Look up gamma-corrected LED values
-            pixel_arr = led_table_np[pixel_arr]
-            pixel_bits_np = np.unpackbits(pixel_arr)
-            t2 = time.time()
+        # Unpack to bits so we can re-order them
+        pixel_bits_np = np.unpackbits(pixel_arrs)
 
-            # Serialise pixels to 3 bytes per pin, 1 bit at a time.
-            # The most significant bit for each pin goes first.
-            # This relies on teensy_pins <= 8 so it fits in a byte.
-            bit_chunks.append(pixel_bits_np.reshape((8, 24)).T)
-
-            t3 = time.time()
-            # print (t2-t1)*1000000, (t3-t2)*1000000
+        # Serialise pixels to 3 bytes per pin, 1 bit at a time.
+        # The most significant bit for each pin goes first.
+        # This relies on teensy_pins <= 8 so it fits in a byte.
+        bit_chunks.append(pixel_bits_np.reshape((height, 8, 24)).transpose((0, 2, 1)))
 
     all_bits_np = np.zeros((24,), dtype=np.bool)
     all_bits_np = np.append(all_bits_np, bit_chunks)
 
+    # Pack the bits back up
     packed = np.packbits(all_bits_np)
     packed = bitswap_table[packed]
     bytearr = bytearray(packed.tobytes())

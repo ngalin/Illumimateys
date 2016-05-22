@@ -86,7 +86,7 @@ class Pipeline(object):
         # draw_rectangles(img, contours) #better identifies individual contours - allows to easily detect 'bottom' of contour for future 'moving down the screen'
         # bottom_of_contour(img, contours)
 
-        if show_debug or True: cv2.imshow("debug", img)
+        if show_debug: cv2.imshow("debug", img)
         return img
 
 
@@ -228,7 +228,7 @@ def draw_contours(img, contours):
     # Draw and fill all contours
     # cv2.drawContours(img, contours, -1, (0, 255, 0), -1)
     for i, c in enumerate(contours):
-        cv2.drawContours(img, contours, i, next(COLOURS), thickness=3) # -1 to fill
+        cv2.drawContours(img, contours, i, next(COLOURS), thickness=-1) # -1 to fill
 
 def local_max(img):
     kernel = np.ones((40, 40), np.uint8)
