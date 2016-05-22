@@ -14,12 +14,14 @@ from showMovie.imgproc import Pipeline, BackgroundRejecterMog, BackgroundRejecte
 import check_panel_time
 
 FAKE_SERIAL = True
+DEFISH = True
+
 MAX_NUM_PORTS = 24
 TARGET_FRAME_RATE = 30
 TEENSY_SYNC = False
 
 CAPTURE_SIZE = (1920, 1080)
-PREVIEW_SIZE = (CAPTURE_SIZE[0]/4, CAPTURE_SIZE[1]/4)
+PREVIEW_SIZE = (CAPTURE_SIZE[0]/2, CAPTURE_SIZE[1]/2)
 
 led_serial = []
 led_image = []
@@ -160,23 +162,18 @@ def main(argv):
     if argv:
         filename = argv[0]
 
-    defish = False
     needs_release = False
-    # crop = (306, 204) # w, h
-    crop = (918, 612)
     if filename:
         cap = open_file(filename)
     else:
         cap = open_camera()
-        defish = True
         needs_release = True
-        crop = () # No crop
     if not cap.isOpened:
         print "Failed to open capture"
         return
 
     print "Initialising pipeline"
-    pipeline = Pipeline(defish, crop=crop, bg=BackgroundRejecterAvg())
+    pipeline = Pipeline(DEFISH, bg=BackgroundRejecterAvg())
 
     print "Initialising serial ports"
     num_ports = initialise_serial_ports(fake=FAKE_SERIAL)

@@ -22,64 +22,54 @@ COLOURS = colors = itertools.cycle([
 ])
 
 # Observed framing of the camera I used
-right_crop = 178+10
-left_crop = 216+10
-diameter = 1920 - (left_crop + right_crop)
-vshift = 40
-top_margin = ((diameter - 1080) / 2) + vshift
-bottom_margin = ((diameter - 1080) / 2) - vshift
+RAW_HEIGHT = 1080
+left_crop = 196+10 # Left black region to discard
+right_crop = 208+10 # Right black region to discard
+diameter = 1920 - (left_crop + right_crop) # Remaining horizontal diameter of projection
+vshift = 74 # Amount to vertically shift downwards to recenter
+top_margin = ((diameter - RAW_HEIGHT) / 2) + vshift # Top margin to add to create a square
+bottom_margin = ((diameter - RAW_HEIGHT) / 2) - vshift # Bottom margin to add
+
+DEFISHED_SIZE = 1080
+DEFISHED_TOP_MARGIN = 308 # These are measured from post-fisheye image
+DEFISHED_BOTTOM_MARGIN = 209
+
+# Length of the longer (top) side of pespective rect
+CROP_WIDTH = (DEFISHED_SIZE * 0.580)
+# Length of the shorter (bottom) side
+PERSPECTIVE_WIDTH = int(CROP_WIDTH * 0.840)
 
 gammatable = np.array(make_gamma_table(0.7), dtype=np.uint8)
 
 class Pipeline(object):
-    def __init__(self, defish, crop=(), bg=None):
+    def __init__(self, defish, bg=None):
         """
         :param defish: whether to defish
-        :param crop: (width, height) for bottom-centre crop
         """
-        assert not (defish and crop)
         if defish:
-            self.defisher = create_fisher((diameter,diameter), (1080,1080))
+            self.defisher = create_fisher((diameter,diameter), (DEFISHED_SIZE, DEFISHED_SIZE))
         else:
             self.defisher = None
-        self.crop = crop
         self.bg = bg
         self.prev_grey_img = None
         self.flowstate = None
 
     def process(self, img):
-        shape = img.shape
-
-        if self.crop:
-            xmargin = shape[1] - self.crop[0]
-            ymargin = shape[0] - self.crop[1]
-            croprect = slice(ymargin, shape[0]), slice(xmargin/2, shape[1]-xmargin/2)
-        else:
-            croprect = slice(0, shape[0]), slice(0, shape[1])
-
-        # Crop as early as possible for performance. We might downsize as well if needed.
-        img = img[croprect[0], croprect[1]]
-
-        #these coords need tweaking....currently dep on shape of img from movie
-        #nats perspective transform:
-        # pts = np.array([(0,200), (640, 200), (500, 426), (140, 426)], dtype = "float32")
-        # img = four_point_transform(img, pts)
-
         # Simplify to grayscale for processing
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         is_color = False
 
+        # Correct fisheye projection
+        if self.defisher:
+            img = img[0:RAW_HEIGHT, left_crop:-right_crop]
+            img = cv2.copyMakeBorder(img, top_margin, bottom_margin, 0, 0, cv2.BORDER_CONSTANT)
+            img = self.defisher.unwarp(img)
+            # img = cv2.resize(img, (img.shape[1]/2, img.shape[0]/2))
+
+        img = correct_perspective(img)
+
         if self.bg:
             img = self.bg.process(img)
-
-        if self.defisher:
-            img = img[0:1080, left_crop:-right_crop]
-            img = cv2.copyMakeBorder(img, top_margin, bottom_margin, 0, 0, cv2.BORDER_CONSTANT)
-            # cv2.imwrite("border.jpg", img)
-
-            img = self.defisher.unwarp(img)
-            # cv2.imwrite("defished.jpg", img)
-            img = cv2.resize(img, (img.shape[1]/2, img.shape[0]/2))
 
         ### Analysis (in greyscale)
         img = morph_cleanup(img)
@@ -145,6 +135,20 @@ class BackgroundRejecterAvg(object):
         # mask = np.abs(frame - res) > 10
         # frame = np.where(mask, frame, 0)
         return frame
+
+
+def correct_perspective(img):
+    # Crop and correct perspective
+    topy = DEFISHED_TOP_MARGIN + 232  # Approx horizon - change if camera moves
+    boty = DEFISHED_SIZE - DEFISHED_BOTTOM_MARGIN
+    topleftx = (DEFISHED_SIZE - CROP_WIDTH) / 2
+    toprightx = DEFISHED_SIZE - topleftx
+    botleftx = (DEFISHED_SIZE - PERSPECTIVE_WIDTH) / 2
+    botrightx = DEFISHED_SIZE - botleftx
+    # (TL, TR, BR, BL)
+    pts = np.array([(topleftx, topy), (toprightx, topy), (botrightx, boty), (botleftx, boty)], dtype="float32")
+    img = four_point_transform(img, pts)
+    return img
 
 def morph_cleanup(img):
     ### Morphological cleanup
