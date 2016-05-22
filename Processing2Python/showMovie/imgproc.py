@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import itertools
+import random
+from collections import Counter
 
 from showMovie.defish import create_fisher
 import cv2
@@ -8,7 +10,7 @@ from showMovie.helperFunctions import make_gamma_table
 from perspective_transform import four_point_transform
 
 THRESHOLD = int(255 * 0.7)
-MIN_CONTOUR_AREA = 10
+MIN_CONTOUR_DIMENSION = 20 # In debug window pixels
 
 MORPH_KERNEL = np.ones((3, 3), np.uint8)
 
@@ -51,6 +53,7 @@ class Pipeline(object):
         else:
             self.defisher = None
         self.bg = bg
+        self.prev_drawn = None
         self.prev_grey_img = None
         self.flowstate = None
 
@@ -82,11 +85,12 @@ class Pipeline(object):
         ### Drawing (in colour)
         if not is_color:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        draw_contours(img, contours)
+        img = draw_contours(img, contours, self.prev_drawn)
+        self.prev_drawn = img
         # draw_rectangles(img, contours) #better identifies individual contours - allows to easily detect 'bottom' of contour for future 'moving down the screen'
         # bottom_of_contour(img, contours)
 
-        if show_debug: cv2.imshow("debug", img)
+        if show_debug or True: cv2.imshow("debug", img)
         return img
 
 
@@ -188,6 +192,11 @@ def find_contours(img):
     # contours, hchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     contours, hch = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    # Discard too-small contours
+    def is_big_enough(cnt):
+        x, y, w, h = cv2.boundingRect(cnt)
+        return w > MIN_CONTOUR_DIMENSION or h > MIN_CONTOUR_DIMENSION
+    contours = [c for c in contours if is_big_enough(c)]
     return contours
 
 def compute_flow(previmg, img, prevflow):
@@ -224,11 +233,29 @@ def compute_flow(previmg, img, prevflow):
 
     return flow, rgb
 
-def draw_contours(img, contours):
+def draw_contours(img, contours, prev_drawn=None):
     # Draw and fill all contours
-    # cv2.drawContours(img, contours, -1, (0, 255, 0), -1)
-    for i, c in enumerate(contours):
-        cv2.drawContours(img, contours, i, next(COLOURS), thickness=-1) # -1 to fill
+    drawn = np.zeros_like(img)
+    for ctrIdx, ctr in enumerate(contours):
+        color = (0, 0, 0)
+        if prev_drawn is not None:
+            # Randomly sample the bounding box of this contour in the previous image and use the most
+            # common colour.
+            x, y, w, h = cv2.boundingRect(ctr)
+            prev_box = prev_drawn[y:y+h, x:x+w]
+            # cv2.rectangle(drawn, (x, y), (x + w, y + h), (0, 255, 0), 1)
+            color_counts = Counter()
+            for _ in range(12): #Make this bigger for more domination by larger blobs
+                xx = random.randrange(w)
+                yy = random.randrange(h)
+                color_counts[tuple(map(int, prev_box[yy, xx]))] += 1
+            color_counts[(0, 0, 0)] = 0 # Don't choose black if possible
+            counted = sorted(((count, color) for color, count in color_counts.items()), reverse=True)
+            color = counted[0][1]
+        if color == (0, 0, 0):
+            color = next(COLOURS)
+        cv2.drawContours(drawn, contours, ctrIdx, color, thickness=-1) # -1 to fill
+    return drawn
 
 def local_max(img):
     kernel = np.ones((40, 40), np.uint8)
