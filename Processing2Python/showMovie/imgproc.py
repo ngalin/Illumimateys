@@ -39,8 +39,6 @@ CROP_WIDTH = (DEFISHED_SIZE * 0.580)
 # Length of the shorter (bottom) side
 PERSPECTIVE_WIDTH = int(CROP_WIDTH * 0.840)
 
-gammatable = np.array(make_gamma_table(0.7), dtype=np.uint8)
-
 class Pipeline(object):
     def __init__(self, defish, bg=None):
         """
@@ -64,31 +62,20 @@ class Pipeline(object):
             img = img[0:RAW_HEIGHT, left_crop:-right_crop]
             img = cv2.copyMakeBorder(img, top_margin, bottom_margin, 0, 0, cv2.BORDER_CONSTANT)
             img = self.defisher.unwarp(img)
-            # img = cv2.resize(img, (img.shape[1]/2, img.shape[0]/2))
 
         img = correct_perspective(img)
-
         if self.bg:
             img = self.bg.process(img)
 
         ### Analysis (in greyscale)
+        # cv2.imshow("debug2", cv2.threshold(img, 12, 255, cv2.THRESH_BINARY)[1])
         img = morph_cleanup(img)
-        # ret, img = cv2.threshold(img, 12, 255, cv2.THRESH_BINARY)
+
+        # Threshold before contours
+        # img = simple_threshold(img) #, or...
+        img = adaptive_threshold(img)
+
         contours = find_contours(img)
-
-        # Find connected components and watershed
-        # ret, markers = cv2.connectedComponents(img)
-        # markers = markers + 1
-        # markers[unknown == 255] = 0
-        # markers = cv2.watershed(img, markers)
-
-        # brighter = cv2.LUT(img, gammatable)
-        # img = brighter
-        # self.flowstate, flowimg = compute_flow(self.prev_grey_img, img, self.flowstate)
-        # self.prev_grey_img = img
-        # if flowimg is not None:
-        #     img = flowimg
-        #     is_color = True
 
         ### Drawing (in colour)
         if not is_color:
@@ -159,15 +146,32 @@ def morph_cleanup(img):
     # img = cv2.dilate(img, morph_kernel)
 
     # Morph open to remove noise
-    # img = cv2.morphologyEx(img, cv2.MORPH_OPEN, morph_kernel, iterations=2)
+    img = cv2.morphologyEx(img, cv2.MORPH_OPEN, MORPH_KERNEL, iterations=1)
 
     # Morph close to fill dark holes
-    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, MORPH_KERNEL, iterations=3)
-    img = cv2.erode(img, MORPH_KERNEL, iterations=2)
+    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, MORPH_KERNEL, iterations=2)
+
+    # Erode to define edges
+    # img = cv2.erode(img, MORPH_KERNEL, iterations=2)
 
     # For cool fuzzy edge-style shadow, use gradient
     # img = cv2.morphologyEx(img, cv2.MORPH_GRADIENT, MORPH_KERNEL)
 
+    return img
+
+def simple_threshold(img):
+    # Ghibli style
+    thresh = 12
+    ret, img = cv2.threshold(img, thresh, 255, cv2.THRESH_BINARY)
+    return img
+
+def adaptive_threshold(img):
+    # Simple low threshold first to remove some noise
+    # ret, img = cv2.threshold(img, 5, 255, cv2.THRESH_BINARY)
+
+    thresh_size = 111
+    thresh_c = -2
+    img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, thresh_size, thresh_c)
     return img
 
 def find_contours(img):
@@ -180,7 +184,6 @@ def find_contours(img):
     # edges = cv2.GaussianBlur(edges, (5, 5), 0) #consider blurring again, after edge detection
     # contours, hchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
-    ret, img = cv2.threshold(img, 12, 255, cv2.THRESH_BINARY)
     contours, hch = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     return contours
 
@@ -222,7 +225,7 @@ def draw_contours(img, contours):
     # Draw and fill all contours
     # cv2.drawContours(img, contours, -1, (0, 255, 0), -1)
     for i, c in enumerate(contours):
-        cv2.drawContours(img, contours, i, next(COLOURS), thickness=-1)
+        cv2.drawContours(img, contours, i, next(COLOURS), thickness=3) # -1 to fill
 
 def local_max(img):
     kernel = np.ones((40, 40), np.uint8)

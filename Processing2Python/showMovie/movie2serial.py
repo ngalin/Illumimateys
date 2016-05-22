@@ -182,6 +182,7 @@ def main(argv):
     # Open a preview window
     cv2.namedWindow("capture")
     cv2.namedWindow("debug")
+    cv2.namedWindow("debug2")
     cv2.namedWindow("panels")
 
     tstart = time.time()
@@ -232,6 +233,7 @@ def main(argv):
 
     cv2.destroyWindow("capture")
     cv2.destroyWindow("debug")
+    cv2.destroyWindow("debug2")
     cv2.destroyWindow("panels")
     if needs_release:
         cv2.release(cap) #release camera
