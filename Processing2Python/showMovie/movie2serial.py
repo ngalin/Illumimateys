@@ -125,7 +125,6 @@ def send_frame_to_led_panels(frame, num_ports, show_debug=False):
             led_data[1] = 0
             led_data[2] = 0
 
-
         def write(idx, data):
             led_serial[idx].write(data)
         send_executor.submit(write, teensy_idx, bytes(led_data))

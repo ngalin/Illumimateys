@@ -93,7 +93,7 @@ def image_to_data_fast(image, strip_layout_direction):
     # The image is in BGR, roll the channel axis to get GRB
     image = np.roll(image, -1, axis=2)
 
-    bit_ranges = []
+    bit_chunks = []
 
     for y in range(0, rows_per_pin):
         # Even strips are indexed forward, odd strips backwards.
@@ -103,7 +103,6 @@ def image_to_data_fast(image, strip_layout_direction):
             rng = bwd_range
         for x in rng:
             # Collect one pixel per teensy pin, 8 x 3 bytes (g, r, b)
-            # pixel_bits = bitarray()
             t1 = time.time()
 
             # fetch teensy_pins pixels from the image, 1 for each strip
@@ -112,19 +111,18 @@ def image_to_data_fast(image, strip_layout_direction):
             # Look up gamma-corrected LED values
             pixel_arr = led_table_np[pixel_arr]
             pixel_bits_np = np.unpackbits(pixel_arr)
-
             t2 = time.time()
 
-            # Serialise pixels to 3 bytes per pin, 1 bit at a time. The most significant bit for each pin goes
-            # first. This relies on teensy_pins <= 8 so it fits in a byte.
-            for i in range(24):
-                bit_ranges.append(pixel_bits_np[i::24])
+            # Serialise pixels to 3 bytes per pin, 1 bit at a time.
+            # The most significant bit for each pin goes first.
+            # This relies on teensy_pins <= 8 so it fits in a byte.
+            bit_chunks.append(pixel_bits_np.reshape((8, 24)).T)
 
             t3 = time.time()
             # print (t2-t1)*1000000, (t3-t2)*1000000
 
     all_bits_np = np.zeros((24,), dtype=np.bool)
-    all_bits_np = np.append(all_bits_np, bit_ranges)
+    all_bits_np = np.append(all_bits_np, bit_chunks)
 
     packed = np.packbits(all_bits_np)
     packed = bitswap_table[packed]
