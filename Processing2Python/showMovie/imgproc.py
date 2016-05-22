@@ -30,6 +30,8 @@ vshift = 74 # Amount to vertically shift downwards to recenter
 top_margin = ((diameter - RAW_HEIGHT) / 2) + vshift # Top margin to add to create a square
 bottom_margin = ((diameter - RAW_HEIGHT) / 2) - vshift # Bottom margin to add
 
+# Processing time can be reduced by shrinking this, but it makes no difference until sending to
+# teensys is faster than ~50 ms
 DEFISHED_SIZE = 1080
 DEFISHED_TOP_MARGIN = 308 # These are measured from post-fisheye image
 DEFISHED_BOTTOM_MARGIN = 209
@@ -52,7 +54,7 @@ class Pipeline(object):
         self.prev_grey_img = None
         self.flowstate = None
 
-    def process(self, img):
+    def process(self, img, show_debug=False):
         # Simplify to grayscale for processing
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         is_color = False
@@ -65,10 +67,10 @@ class Pipeline(object):
 
         img = correct_perspective(img)
         if self.bg:
-            img = self.bg.process(img)
+            img = self.bg.process(img, show_debug)
 
         ### Analysis (in greyscale)
-        # cv2.imshow("debug2", cv2.threshold(img, 12, 255, cv2.THRESH_BINARY)[1])
+        # if show_debug: cv2.imshow("debug2", cv2.threshold(img, 12, 255, cv2.THRESH_BINARY)[1])
         img = morph_cleanup(img)
 
         # Threshold before contours
@@ -84,7 +86,7 @@ class Pipeline(object):
         # draw_rectangles(img, contours) #better identifies individual contours - allows to easily detect 'bottom' of contour for future 'moving down the screen'
         # bottom_of_contour(img, contours)
 
-        cv2.imshow("debug", img)
+        if show_debug: cv2.imshow("debug", img)
         return img
 
 
@@ -96,9 +98,9 @@ class BackgroundRejecterMog(object):
         # noise_strength_sigma = 1
         self.fgbg = cv2.BackgroundSubtractorMOG()#history=200, nmixtures=6, backgroundRatio=0.1, noiseSigma=1)
 
-    def process(self, frame):
+    def process(self, frame, show_debug=False):
         fgmask = self.fgbg.apply(frame)
-        cv2.imshow("bg", fgmask)
+        if show_debug: cv2.imshow("bg", fgmask)
         frame = frame & fgmask
         return frame
 
@@ -106,13 +108,14 @@ class BackgroundRejecterAvg(object):
     def __init__(self, frame=None):
         self.avg = np.float32(frame) if frame else None
 
-    def process(self, frame):
+    def process(self, frame, show_debug=False):
         if self.avg is None:
             self.avg = np.float32(frame)
 
         cv2.accumulateWeighted(frame, self.avg, 0.003)
         res = cv2.convertScaleAbs(self.avg)
-        cv2.imshow("bg", res)
+        if show_debug:
+            cv2.imshow("bg", res)
 
         # Method 1: reject by subtraction. Avoids hard boundaries, only works well when background is dark.
         res = np.minimum(res, frame)

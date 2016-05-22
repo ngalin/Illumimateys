@@ -96,10 +96,10 @@ def close_all_ports(num_ports):
     for i in range(0, num_ports):
         led_serial[i].close()
 
-def send_frame_to_led_panels(frame, num_ports):
+def send_frame_to_led_panels(frame, num_ports, show_debug=False):
     # Resize to exact dimensions of panels, adding in dummy columns
     frame = hp.resize(frame, PANEL_WIDTH, PANEL_HEIGHT, DUMMY_COL_INDICES)
-    cv2.imshow("panels", frame)
+    if show_debug: cv2.imshow("panels", frame)
 
     # Write the frame to panels
     for teensy_idx in range(0, num_ports):
@@ -185,30 +185,41 @@ def main(argv):
     cv2.namedWindow("debug2")
     cv2.namedWindow("panels")
 
+    # Run until no more frames
+    run(cap, filename, num_ports, pipeline)
+
+    cv2.destroyWindow("capture")
+    cv2.destroyWindow("debug")
+    cv2.destroyWindow("debug2")
+    cv2.destroyWindow("panels")
+    if needs_release:
+        cap.release() #release camera
+
+    # in case of some crash - set all LEDs to black before closing ports to Teensys
+    send_black_frame(num_ports)
+    time.sleep(1)
+    send_black_frame(num_ports)
+    send_executor.shutdown(wait=True)
+    close_all_ports(num_ports)
+
+
+def run(cap, filename, num_ports, pipeline):
     tstart = time.time()
     have_frame, frame = cap.read()
     framecount = 1
-
     # need to first draw all black frame:
     send_black_frame(num_ports)
-
     while have_frame:
-        #frame = cv2.imread("/Users/alex/Desktop/shadowwall-test-1.png")
-        #frame = cv2.imread("/Users/ngalin/Dropbox/Alex & Nat (1)/Shadow wall/shadowwall-test-1.png")
-        # frame = cv2.imread("/Users/ngalin/Desktop/emoji/logoForNatalia.png")
-        #frame = cv2.imread("/Users/ngalin/Desktop/emoji/whatWillYouMakeNatalia.png")
-        #frame = cv2.imread("/Users/ngalin/Desktop/longReachTransport.png")
-#        frame = cv2.imread("/Users/ngalin/Desktop/Videos/shadowLight.jpg") #not too good - too dark?
-        #frame = cv2.imread("/Users/ngalin/Desktop/Videos/floatingSquares.jpg")
+        show_debug = framecount % (TARGET_FRAME_RATE/2) == 0
+        if show_debug: cv2.imshow("capture", cv2.resize(frame, PREVIEW_SIZE))
 
-        cv2.imshow("capture", cv2.resize(frame, PREVIEW_SIZE))
-
-        frame = pipeline.process(frame)
+        tprocstart = time.time()
+        frame = pipeline.process(frame, show_debug)
         frame = cv2.flip(frame, 1)
-        tproc = time.time()
+        tprocend = time.time()
 
         if check_panel_time.good_time_to_play():
-            send_frame_to_led_panels(frame, num_ports)
+            send_frame_to_led_panels(frame, num_ports, show_debug)
         else:
             send_black_frame(num_ports)
 
@@ -217,12 +228,12 @@ def main(argv):
             break
 
         tend = time.time()
-        if framecount % TARGET_FRAME_RATE == 0:
-            proc_duration = (tproc - tstart)
-            send_duration = (tend - tproc)
+        if show_debug:
+            proc_duration = (tprocend - tprocstart)
+            send_duration = (tend - tprocend)
             duration = (tend - tstart)
-            print "Frame took", duration*1000, "ms,", proc_duration*1000, "proc,", \
-                send_duration*1000, "send,", (1 / duration), "fps"
+            print "Frame took", duration * 1000, "ms,", proc_duration * 1000, "proc,", \
+                send_duration * 1000, "send,", (1 / duration), "fps"
         tstart = time.time()
         have_frame, frame = cap.read()
         framecount += 1
@@ -230,20 +241,7 @@ def main(argv):
             framecount = 0
             cap = open_file(filename)
             have_frame, frame = cap.read()
-
-    cv2.destroyWindow("capture")
-    cv2.destroyWindow("debug")
-    cv2.destroyWindow("debug2")
-    cv2.destroyWindow("panels")
-    if needs_release:
-        cv2.release(cap) #release camera
-
-    # in case of some crash - set all LEDs to black before closing ports to Teensys
-    send_black_frame(num_ports)
-    time.sleep(1)
-    send_black_frame(num_ports)
-    send_executor.shutdown(wait=True)
-    close_all_ports(num_ports)
+    return cap
 
 
 def send_black_frame(num_ports):
