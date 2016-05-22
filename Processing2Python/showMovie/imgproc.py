@@ -86,7 +86,7 @@ class Pipeline(object):
         # draw_rectangles(img, contours) #better identifies individual contours - allows to easily detect 'bottom' of contour for future 'moving down the screen'
         # bottom_of_contour(img, contours)
 
-        if show_debug: cv2.imshow("debug", img)
+        if show_debug or True: cv2.imshow("debug", img)
         return img
 
 

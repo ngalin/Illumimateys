@@ -136,7 +136,7 @@ def verify_led_data(teensy_idx, led_data):
     if led_data != led_data_orig:
         print(repr(led_data_orig))
         print(repr(led_data))
-        raise AssertionError
+        # raise AssertionError
 
 def open_camera():
     print "Opening capture from camera at", CAPTURE_SIZE
