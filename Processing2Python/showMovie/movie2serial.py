@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from showMovie.imgproc import Pipeline, BackgroundRejecterMog, BackgroundRejecterAvg
 import check_panel_time
 
-FAKE_SERIAL = True
+FAKE_SERIAL = False
 DEFISH = True
 
 MAX_NUM_PORTS = 24
@@ -83,7 +83,7 @@ def serial_configure(port_name, port_num, fake=False):
     led_layout.append(int(params[2]))
 
 def initialise_serial_ports(fake=False):
-    ports = FAKE_PORTS if fake else glob.glob('/dev/tty.usbmodem*')
+    ports = FAKE_PORTS if fake else glob.glob('/dev/ttyACM*')#''/dev/tty.usbmodem*')
     print 'Serial Ports: '
     print ports
     idx = -1
@@ -115,7 +115,7 @@ def send_frame_to_led_panels(frame, num_ports, show_debug=False):
         # verify_led_data(teensy_idx, led_data)
 
         # send byte data to Teensys:
-        if TEENSY_SYNC or teensy_idx == 0:
+        if (not TEENSY_SYNC) or teensy_idx == 0:
             led_data[0] = '*'  # first Teensy is the frame sync master
             usec = int((1000000.0 / TARGET_FRAME_RATE) * 0.75)
             led_data[1] = (usec) & 0xff  # request the frame sync pulse
