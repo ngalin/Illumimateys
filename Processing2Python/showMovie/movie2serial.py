@@ -33,6 +33,7 @@ PANEL_HEIGHT = 120
 DUMMY_COL_INDICES = list(range(24, 24+16, 4))
 
 send_executor = ThreadPoolExecutor(1)
+is_writing = False
 
 FAKE_PORTS = ['/fake/1', '/fake/2', '/fake/3', '/fake/4', '/fake/5', '/fake/6']
 class FakeSerial(object):
@@ -101,6 +102,9 @@ def send_frame_to_led_panels(frame, num_ports, show_debug=False):
     frame = hp.resize(frame, PANEL_WIDTH, PANEL_HEIGHT, DUMMY_COL_INDICES)
     if show_debug: cv2.imshow("panels", frame)
 
+    if is_writing:
+        return # drop the frame that the panels can't keep up with
+
     # Write the frame to panels
     for teensy_idx in range(0, num_ports):
         # copy a portion of the movie's image to the LED image
@@ -126,7 +130,10 @@ def send_frame_to_led_panels(frame, num_ports, show_debug=False):
             led_data[2] = 0
 
         def write(idx, data):
+            global is_writing
+            is_writing = True
             led_serial[idx].write(data)
+            is_writing = False
         # write(teensy_idx, bytes(led_data))
         send_executor.submit(write, teensy_idx, bytes(led_data))
 
