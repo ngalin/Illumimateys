@@ -39,9 +39,9 @@ DEFISHED_TOP_MARGIN = 308 # These are measured from post-fisheye image
 DEFISHED_BOTTOM_MARGIN = 209
 
 # Length of the longer (top) side of pespective rect
-CROP_WIDTH = (DEFISHED_SIZE * 0.580)
+CROP_WIDTH = (DEFISHED_SIZE * 0.70) #.58
 # Length of the shorter (bottom) side
-PERSPECTIVE_WIDTH = int(CROP_WIDTH * 0.840)
+PERSPECTIVE_WIDTH = int(CROP_WIDTH * 0.54) #0.84
 
 class Pipeline(object):
     def __init__(self, defish, bg=None):
@@ -73,7 +73,6 @@ class Pipeline(object):
             img = self.bg.process(img, show_debug)
 
         ### Analysis (in greyscale)
-        # if show_debug: cv2.imshow("debug2", cv2.threshold(img, 12, 255, cv2.THRESH_BINARY)[1])
         img = morph_cleanup(img)
 
         # Threshold before contours
@@ -116,7 +115,7 @@ class BackgroundRejecterAvg(object):
         if self.avg is None:
             self.avg = np.float32(frame)
 
-        cv2.accumulateWeighted(frame, self.avg, 0.003)
+        cv2.accumulateWeighted(frame, self.avg, 0.0015)
         res = cv2.convertScaleAbs(self.avg)
         if show_debug:
             cv2.imshow("bg", res)
@@ -133,8 +132,8 @@ class BackgroundRejecterAvg(object):
 
 def correct_perspective(img):
     # Crop and correct perspective
-    topy = DEFISHED_TOP_MARGIN + 232  # Approx horizon - change if camera moves
-    boty = DEFISHED_SIZE - DEFISHED_BOTTOM_MARGIN
+    topy = DEFISHED_TOP_MARGIN + 154  # Approx horizon - change if camera moves
+    boty = DEFISHED_SIZE - (DEFISHED_BOTTOM_MARGIN + 40) # bottom of useful data
     topleftx = (DEFISHED_SIZE - CROP_WIDTH) / 2
     toprightx = DEFISHED_SIZE - topleftx
     botleftx = (DEFISHED_SIZE - PERSPECTIVE_WIDTH) / 2
