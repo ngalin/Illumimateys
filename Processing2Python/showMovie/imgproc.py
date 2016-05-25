@@ -23,6 +23,9 @@ COLOURS = colors = itertools.cycle([
     (100, 100, 255),
 ])
 
+VERT_OFFSET = 20
+TAN_THETA = np.tan(np.deg2rad(85))
+
 # Observed framing of the camera I used
 RAW_HEIGHT = 1080
 left_crop = 196+10 # Left black region to discard
@@ -89,10 +92,10 @@ class Pipeline(object):
         # draw_rectangles(img, contours) #better identifies individual contours - allows to easily detect 'bottom' of contour for future 'moving down the screen'
         # bottom_of_contour(img, contours)
         colors = get_draw_contours_colors(img, contours, self.prev_drawn)
-        new_img = move_contour_y(img, contours, colors)
+        new_img = move_contour_y(img, contours, colors) #contours are a bit jumpy...apply smoothing, or lag
 
         if show_debug or True: cv2.imshow("debug", img)
-        if show_debug or True: cv2.imshow("debug2", new_img)
+        #if show_debug or True: cv2.imshow("debug2", new_img)
 
         return new_img
 
@@ -119,7 +122,7 @@ class BackgroundRejecterAvg(object):
         if self.avg is None:
             self.avg = np.float32(frame)
 
-        cv2.accumulateWeighted(frame, self.avg, 0.0015)
+        cv2.accumulateWeighted(frame, self.avg, 0.0010)
         res = cv2.convertScaleAbs(self.avg)
         if show_debug:
             cv2.imshow("bg", res)
@@ -159,7 +162,7 @@ def morph_cleanup(img):
     img = cv2.morphologyEx(img, cv2.MORPH_OPEN, MORPH_KERNEL, iterations=1)
 
     # Morph close to fill dark holes
-    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, MORPH_KERNEL, iterations=2)
+    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, MORPH_KERNEL, iterations=3)
 
     # Erode to define edges
     # img = cv2.erode(img, MORPH_KERNEL, iterations=2)
@@ -180,7 +183,7 @@ def adaptive_threshold(img):
     # ret, img = cv2.threshold(img, 5, 255, cv2.THRESH_BINARY)
 
     thresh_size = 111
-    thresh_c = -2
+    thresh_c = -4
     img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, thresh_size, thresh_c)
     return img
 
@@ -319,12 +322,26 @@ def move_contour_y(img, contours, colors):
     bottom_ctrs = bottom_of_contour(img, contours, draw=False)
     if len(bottom_ctrs) == 0:
         return new_img
-    (x_shift, y_shift) = zip(*bottom_ctrs)
+    (x_shifts, y_shifts) = zip(*bottom_ctrs)
+
+    #x_positions = calc_contour_x_shift(x_shifts, width, height)
 
     for i, ctr in enumerate(contours):
-        new_ctrs.append(ctr + (0, height/2 - y_shift[i])) #TODO - move contours in the x direction away from center, depending on how far away they are (pixel row)
+        new_ctrs.append(ctr + (0, (height/2 - VERT_OFFSET) - y_shifts[i])) #TODO - move contours in the x direction away from center, depending on how far away they are (pixel row)
 
     for idx, ctr in enumerate(new_ctrs):
         cv2.drawContours(new_img,new_ctrs,idx,colors[idx],thickness=cv2.cv.CV_FILLED) #TODO - plot smallest contours first, so that larger ones cover/overplot the smaller ones
 
     return new_img
+
+def calc_contour_x_shift(row_pixels, img_width, img_height):
+    x_positions = []
+
+    for idx, row_pixel in enumerate(row_pixels):
+        d = img_width - 2*img_height/TAN_THETA
+        if row_pixel > (img_width/2):
+            x_positions.append(row_pixel + (img_width/d)*row_pixel)
+        else:
+            x_positions.append(row_pixel - (img_width/d)*row_pixel)
+
+    return x_positions
