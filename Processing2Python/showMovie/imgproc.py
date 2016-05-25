@@ -88,9 +88,13 @@ class Pipeline(object):
         self.prev_drawn = img
         # draw_rectangles(img, contours) #better identifies individual contours - allows to easily detect 'bottom' of contour for future 'moving down the screen'
         # bottom_of_contour(img, contours)
+        colors = get_draw_contours_colors(img, contours, self.prev_drawn)
+        new_img = move_contour_y(img, contours, colors)
 
         if show_debug or True: cv2.imshow("debug", img)
-        return img
+        if show_debug or True: cv2.imshow("debug2", new_img)
+
+        return new_img
 
 
 class BackgroundRejecterMog(object):
@@ -256,6 +260,32 @@ def draw_contours(img, contours, prev_drawn=None):
         cv2.drawContours(drawn, contours, ctrIdx, color, thickness=-1) # -1 to fill
     return drawn
 
+def get_draw_contours_colors(img, contours, prev_drawn=None):
+    # Draw and fill all contours
+    colors = []
+    drawn = np.zeros_like(img)
+    for ctrIdx, ctr in enumerate(contours):
+        color = (0, 0, 0)
+        if prev_drawn is not None:
+            # Randomly sample the bounding box of this contour in the previous image and use the most
+            # common colour.
+            x, y, w, h = cv2.boundingRect(ctr)
+            prev_box = prev_drawn[y:y+h, x:x+w]
+            # cv2.rectangle(drawn, (x, y), (x + w, y + h), (0, 255, 0), 1)
+            color_counts = Counter()
+            for _ in range(12): #Make this bigger for more domination by larger blobs
+                xx = random.randrange(w)
+                yy = random.randrange(h)
+                color_counts[tuple(map(int, prev_box[yy, xx]))] += 1
+            color_counts[(0, 0, 0)] = 0 # Don't choose black if possible
+            counted = sorted(((count, color) for color, count in color_counts.items()), reverse=True)
+            color = counted[0][1]
+        if color == (0, 0, 0):
+            color = next(COLOURS)
+        cv2.drawContours(drawn, contours, ctrIdx, color, thickness=-1) # -1 to fill
+        colors.append(color)
+    return colors
+
 def local_max(img):
     kernel = np.ones((40, 40), np.uint8)
     mask = cv2.dilate(img, kernel)
@@ -268,7 +298,7 @@ def draw_rectangles(img, contours):
         x, y, w, h = cv2.boundingRect(ctr)
         cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
-def bottom_of_contour(img, contours):
+def bottom_of_contour(img, contours, draw=False):
     bottom_x = []
     bottom_y = []
     #get the bounding rectangles around contours
@@ -276,6 +306,25 @@ def bottom_of_contour(img, contours):
         x, y, w, h = cv2.boundingRect(ctr)
         bottom_x.append(x + w/2)
         bottom_y.append(y + h)
-        cv2.circle(img,(int(bottom_x[i]),int(bottom_y[i])),3,(255,0,0))
+        if draw:
+            cv2.circle(img,(int(bottom_x[i]),int(bottom_y[i])),3,(255,0,0))
 
     return zip(bottom_x, bottom_y)
+
+def move_contour_y(img, contours, colors):
+    width, height = img.shape[:2]
+    new_img = np.zeros(img.shape, dtype=np.uint8)
+    new_ctrs = []
+
+    bottom_ctrs = bottom_of_contour(img, contours, draw=False)
+    if len(bottom_ctrs) == 0:
+        return new_img
+    (x_shift, y_shift) = zip(*bottom_ctrs)
+
+    for i, ctr in enumerate(contours):
+        new_ctrs.append(ctr + (0, height/2 - y_shift[i])) #TODO - move contours in the x direction away from center, depending on how far away they are (pixel row)
+
+    for idx, ctr in enumerate(new_ctrs):
+        cv2.drawContours(new_img,new_ctrs,idx,colors[idx],thickness=cv2.cv.CV_FILLED) #TODO - plot smallest contours first, so that larger ones cover/overplot the smaller ones
+
+    return new_img
