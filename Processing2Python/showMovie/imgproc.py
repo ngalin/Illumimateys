@@ -95,7 +95,7 @@ class Pipeline(object):
         new_img = move_contour_y(img, contours, colors) #contours are a bit jumpy...apply smoothing, or lag
 
         if show_debug or True: cv2.imshow("debug", img)
-        #if show_debug or True: cv2.imshow("debug2", new_img)
+        if show_debug or True: cv2.imshow("debug2", new_img)
 
         return new_img
 
@@ -315,7 +315,7 @@ def bottom_of_contour(img, contours, draw=False):
     return zip(bottom_x, bottom_y)
 
 def move_contour_y(img, contours, colors):
-    width, height = img.shape[:2]
+    height,width = img.shape[:2]
     new_img = np.zeros(img.shape, dtype=np.uint8)
     new_ctrs = []
 
@@ -327,7 +327,7 @@ def move_contour_y(img, contours, colors):
     #x_positions = calc_contour_x_shift(x_shifts, width, height)
 
     for i, ctr in enumerate(contours):
-        new_ctrs.append(ctr + (0, (height/2 - VERT_OFFSET) - y_shifts[i])) #TODO - move contours in the x direction away from center, depending on how far away they are (pixel row)
+        new_ctrs.append(ctr + (0, (height - VERT_OFFSET) - y_shifts[i])) #TODO - move contours in the x direction away from center, depending on how far away they are (pixel row)
 
     for idx, ctr in enumerate(new_ctrs):
         cv2.drawContours(new_img,new_ctrs,idx,colors[idx],thickness=cv2.cv.CV_FILLED) #TODO - plot smallest contours first, so that larger ones cover/overplot the smaller ones
