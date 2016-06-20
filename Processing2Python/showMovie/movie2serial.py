@@ -12,6 +12,7 @@ import helperFunctions as hp
 from concurrent.futures import ThreadPoolExecutor
 from showMovie.imgproc import Pipeline, BackgroundRejecterMog, BackgroundRejecterAvg
 import check_panel_time
+from imgproc import draw_text
 
 FAKE_SERIAL = False
 DEFISH = True
@@ -223,6 +224,7 @@ def run(cap, filename, num_ports, pipeline):
         tprocstart = time.time()
         frame = pipeline.process(frame, show_debug)
         frame = cv2.flip(frame, 1)
+        #draw_text(frame)
         tprocend = time.time()
 
         if check_panel_time.good_time_to_play():

@@ -1,14 +1,16 @@
 import datetime
 
-START_TIME_HOUR = 17 #5pm
+START_TIME_HOUR = 18
+MINUTES_PAST_HOUR = 50
 END_TIME_HOUR = 23 #11pm
-
-MINUTES_PAST_HOUR = 30
 
 def good_time_to_play():
     now = datetime.datetime.now()
+
+#    if now.day == 4:
+#        return False
+    
     if now.hour >= START_TIME_HOUR and now.hour < END_TIME_HOUR:
-        if now.minute > MINUTES_PAST_HOUR: #turn on at 5:30pm
-            return True
+        return True
     else:
         return False

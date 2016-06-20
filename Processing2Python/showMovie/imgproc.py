@@ -93,11 +93,12 @@ class Pipeline(object):
         # bottom_of_contour(img, contours)
         colors = get_draw_contours_colors(img, contours, self.prev_drawn)
         new_img = move_contour_y(img, contours, colors) #contours are a bit jumpy...apply smoothing, or lag
+        new_img2 = enlarge_img(new_img)
+       # new_img3 = draw_text(new_img2)
+        if show_debug or True: cv2.imshow("debug", new_img)
+        if show_debug or True: cv2.imshow("debug2", new_img2)
 
-        if show_debug or True: cv2.imshow("debug", img)
-        if show_debug or True: cv2.imshow("debug2", new_img)
-
-        return new_img
+        return new_img2
 
 
 class BackgroundRejecterMog(object):
@@ -345,3 +346,12 @@ def calc_contour_x_shift(row_pixels, img_width, img_height):
             x_positions.append(row_pixel - (img_width/d)*row_pixel)
 
     return x_positions
+
+def enlarge_img(img):
+    h,w = img.shape[:2]
+    #new_img = cv2.resize(img, (2*w, 2*h))
+    return img[150:h,0:w]
+
+def draw_text(img):
+    cv2.putText(img,"#ShadowWall", (500,30), cv2.cv.CV_FONT_HERSHEY_SIMPLEX,1,(0,255,0),5,cv2.CV_AA)
+    return img
